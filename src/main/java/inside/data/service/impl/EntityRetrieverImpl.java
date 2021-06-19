@@ -202,7 +202,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
         return Mono.defer(() -> {
             GuildConfig guildConfig = new GuildConfig();
             guildConfig.guildId(guildId);
-            guildConfig.prefix(settings.getDefaults().getPrefix());
+            guildConfig.prefixes(settings.getDefaults().getPrefixes());
             guildConfig.locale(LocaleUtil.getDefaultLocale());
             guildConfig.timeZone(settings.getDefaults().getTimeZone());
             return save(guildConfig).thenReturn(guildConfig);

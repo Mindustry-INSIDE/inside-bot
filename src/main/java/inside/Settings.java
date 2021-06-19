@@ -5,6 +5,7 @@ import org.joda.time.DateTimeZone;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
 import java.time.Duration;
+import java.util.*;
 
 @ConfigurationProperties("insidebot")
 public class Settings{
@@ -103,7 +104,7 @@ public class Settings{
 
     public static class Defaults{
 
-        private String prefix = "#";
+        private List<String> prefixes = Arrays.asList("#");
 
         private DateTimeZone timeZone = DateTimeZone.forID("Etc/Greenwich");
 
@@ -123,12 +124,12 @@ public class Settings{
 
         private int activeUserMessageBarrier = 75;
 
-        public String getPrefix(){
-            return prefix;
+        public List<String> getPrefixes(){
+            return prefixes;
         }
 
-        public void setPrefix(String prefix){
-            this.prefix = prefix;
+        public void setPrefix(List<String> prefixes){
+            this.prefixes = prefixes;
         }
 
         public DateTimeZone getTimeZone(){

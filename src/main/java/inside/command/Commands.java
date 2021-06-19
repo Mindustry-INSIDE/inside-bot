@@ -277,9 +277,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.base64.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
     }
 
@@ -329,13 +329,13 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.avatar.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
     }
 
-    @DiscordCommand(key = "math", params = "command.math.params", description = "command.math.description")
+    @DiscordCommand(key = {"math", "calc"}, params = "command.math.params", description = "command.math.description")
     public static class MathCommand extends Command{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
@@ -354,9 +354,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.math.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
 
         public static Mono<BigDecimal> createExpression(String text){
@@ -554,9 +554,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.translate.help",
-                            GuildConfig.formatPrefix(prefix),
+                            GuildConfig.formatPrefix(prefix.get(0)),
                             cachedLanguages.get()));
         }
 
@@ -815,20 +815,31 @@ public class Commands{
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member member = env.getAuthorAsMember();
 
-            String prefix = interaction.getOption(0)
+            boolean add = interaction.getOption(0)
+                    .flatMap(CommandOption::getChoice)
+                    .map(OptionValue::asString)
+                    .filter(s -> s.matches("^(add|remove)$"))
+                    .map("add"::equals)
+                    .orElse(false);
+
+            String value = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
                     .orElseThrow(AssertionError::new);
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
-                    .filterWhen(guildConfig -> adminService.isAdmin(member))
+                    .filterWhen(ignored -> adminService.isAdmin(member))
                     .switchIfEmpty(messageService.err(env, "command.owner-only").then(Mono.empty()))
                     .flatMap(guildConfig -> Mono.defer(() -> {
-                        guildConfig.prefix(prefix);
-                        return messageService.text(env, "command.settings.prefix.update", guildConfig.prefix())
-                                .and(entityRetriever.save(guildConfig));
-                    }));
+                        List<String> prefixes = guildConfig.prefixes();
+                        if(add){
+                            prefixes.add(value);
+                            return messageService.text(env, "command.settings.added", value);
+                        }
+                        prefixes.remove(value);
+                        return messageService.text(env, "command.settings.removed", value);
+                    }).and(entityRetriever.save(guildConfig)));
         }
     }
 
@@ -1057,9 +1068,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.admin.delete.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
     }
 
@@ -1319,9 +1330,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.poll.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
     }
 
@@ -1349,9 +1360,9 @@ public class Commands{
         @Override
         public Mono<Void> help(CommandEnvironment env){
             return entityRetriever.getGuildConfigById(env.getAuthorAsMember().getGuildId())
-                    .map(GuildConfig::prefix)
+                    .map(GuildConfig::prefixes)
                     .flatMap(prefix -> messageService.info(env, "command.help.title", "command.qpoll.help",
-                            GuildConfig.formatPrefix(prefix)));
+                            GuildConfig.formatPrefix(prefix.get(0))));
         }
     }
 

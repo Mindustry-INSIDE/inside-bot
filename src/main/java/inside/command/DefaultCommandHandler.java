@@ -44,9 +44,9 @@ public class DefaultCommandHandler implements CommandHandler{
 
         Mono<String> prefix = entityRetriever.getGuildConfigById(guildId)
                 .switchIfEmpty(entityRetriever.createGuildConfig(guildId))
-                .map(GuildConfig::prefix)
-                .map(GuildConfig::formatPrefix)
-                .cache();
+                .flatMap(guildConfig -> Mono.justOrEmpty(guildConfig.prefixes().stream()
+                        .filter(message::startsWith)
+                        .findFirst()));
 
         Mono<String> mention = Mono.just(message)
                 .filter(s -> environment.getMessage().getUserMentionIds().contains(selfId))
@@ -55,8 +55,7 @@ public class DefaultCommandHandler implements CommandHandler{
                 .map(s -> s.startsWith(DiscordUtil.getMemberMention(selfId)) ? DiscordUtil.getMemberMention(selfId) :
                         DiscordUtil.getUserMention(selfId));
 
-        Mono<Tuple2<String, String>> text = prefix.filter(message::startsWith)
-                .switchIfEmpty(mention)
+        Mono<Tuple2<String, String>> text = prefix.switchIfEmpty(mention)
                 .map(s -> message.substring(s.length()).trim())
                 .zipWhen(s -> Mono.just(s.contains(" ") ? s.substring(0, s.indexOf(" ")) : s).map(String::toLowerCase))
                 .cache();
@@ -78,7 +77,8 @@ public class DefaultCommandHandler implements CommandHandler{
             if(closest != null){
                 return messageService.err(environment, "command.response.found-closest", closest);
             }
-            return prefix.flatMap(str -> messageService.err(environment, "command.response.unknown", str));
+            return prefix.map(GuildConfig::formatPrefix)
+                    .flatMap(str -> messageService.err(environment, "command.response.unknown", str));
         });
 
         return text.flatMap(TupleUtils.function((commandstr, cmd) -> Mono.justOrEmpty(commandHolder.getCommand(cmd))
@@ -99,8 +99,9 @@ public class DefaultCommandHandler implements CommandHandler{
                     while(true){
                         if(index >= info.params().length && !argstr.isEmpty()){
                             messageService.awaitEdit(environment.getMessage().getId());
-                            return prefix.flatMap(str -> messageService.error(environment, "command.response.many-arguments.title",
-                                    argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                            return prefix.map(GuildConfig::formatPrefix)
+                                    .flatMap(str -> messageService.error(environment, "command.response.many-arguments.title",
+                                            argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
                         }else if(argstr.isEmpty()){
                             break;
                         }
@@ -118,8 +119,9 @@ public class DefaultCommandHandler implements CommandHandler{
                         if(next == -1){
                             if(!satisfied){
                                 messageService.awaitEdit(environment.getMessage().getId());
-                                return prefix.flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
-                                        argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                                return prefix.map(GuildConfig::formatPrefix)
+                                        .flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
+                                                argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
                             }
                             result.add(new CommandOption(info.params()[index], argstr));
                             break;
@@ -136,8 +138,9 @@ public class DefaultCommandHandler implements CommandHandler{
                     if(!satisfied && info.params().length > 0 && !info.params()[0].optional() &&
                             environment.getMessage().getMessageReference().isEmpty()){
                         messageService.awaitEdit(environment.getMessage().getId());
-                        return prefix.flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
-                                argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                        return prefix.map(GuildConfig::formatPrefix)
+                                .flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
+                                        argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
                     }
 
                     Predicate<Throwable> missingAccess = t -> t.getMessage() != null &&

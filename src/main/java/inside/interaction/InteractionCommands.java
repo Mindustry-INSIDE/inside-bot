@@ -630,16 +630,47 @@ public class InteractionCommands{
 
                         return Mono.justOrEmpty(group.getOption("prefix"))
                                 .switchIfEmpty(localeCommand.then(Mono.empty()))
-                                .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")))
-                                .switchIfEmpty(messageService.text(env.event(), "command.settings.prefix.current",
-                                        guildConfig.prefix()).then(Mono.empty()))
-                                .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
-                                        .map(ApplicationCommandInteractionOptionValue::asString))
-                                .flatMap(str -> {
-                                    guildConfig.prefix(str);
-                                    return messageService.text(env.event(), "command.settings.prefix.update", guildConfig.prefix())
-                                            .and(entityRetriever.save(guildConfig));
-                                });
+                                .flatMap(opt -> Mono.justOrEmpty(opt.getOption("type")
+                                        .flatMap(ApplicationCommandInteractionOption::getValue))
+                                        .map(ApplicationCommandInteractionOptionValue::asString)
+                                        .filter(str -> !str.equals("help"))
+                                        .switchIfEmpty(messageService.text(env.event(), "command.settings.prefix.current",
+                                                String.join(", ", guildConfig.prefixes()))
+                                                .then(Mono.empty()))
+                                        .zipWith(Mono.justOrEmpty(opt.getOption("value"))
+                                                .switchIfEmpty(messageService.text(env.event(), "command.settings.prefix.current",
+                                                        String.join(", ", guildConfig.prefixes()))
+                                                        .then(Mono.empty()))
+                                                .flatMap(subopt -> Mono.justOrEmpty(subopt.getValue()))
+                                                .map(ApplicationCommandInteractionOptionValue::asString)))
+                                .flatMap(function((choice, enums) -> Mono.defer(() -> {
+                                    List<String> flags = guildConfig.prefixes();
+                                    if(choice.equals("clear")){
+                                        flags.clear();
+                                        return messageService.text(env.event(), "command.settings.prefix.clear");
+                                    }
+
+                                    boolean add = choice.equals("add");
+
+                                    List<String> removed = new ArrayList<>(0);
+                                    String[] text = enums.split("(\\s+)?,(\\s+)?");
+                                    for(String s : text){
+                                        if(add){
+                                            flags.add(s);
+                                        }else{
+                                            if(flags.remove(s)){
+                                                removed.add(s);
+                                            }
+                                        }
+                                    }
+
+                                    if(add){
+                                        return messageService.text(env.event(), "command.settings.added",
+                                                String.join(", ", flags));
+                                    }
+                                    return messageService.text(env.event(), "command.settings.removed",
+                                            String.join(", ", removed));
+                                }))).and(entityRetriever.save(guildConfig));
 
                     }));
         }
@@ -661,11 +692,33 @@ public class InteractionCommands{
                             .type(ApplicationCommandOptionType.SUB_COMMAND_GROUP.getValue())
                             .addOption(ApplicationCommandOptionData.builder()
                                     .name("prefix")
-                                    .description("Configure bot prefix")
+                                    .description("Configure bot prefixes")
                                     .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
                                     .addOption(ApplicationCommandOptionData.builder()
+                                            .name("type")
+                                            .description("Action type")
+                                            .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .required(true)
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Get a help")
+                                                    .value("help")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Add prefix(s)")
+                                                    .value("add")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Remove prefix(s)")
+                                                    .value("remove")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Remove all prefixes")
+                                                    .value("clear")
+                                                    .build())
+                                            .build())
+                                    .addOption(ApplicationCommandOptionData.builder()
                                             .name("value")
-                                            .description("New prefix")
+                                            .description("Target prefix(s)")
                                             .type(ApplicationCommandOptionType.STRING.getValue())
                                             .build())
                                     .build())

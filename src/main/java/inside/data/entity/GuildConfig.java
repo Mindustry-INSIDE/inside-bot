@@ -1,6 +1,7 @@
 package inside.data.entity;
 
 import inside.data.entity.base.GuildEntity;
+import org.hibernate.annotations.Type;
 import org.joda.time.DateTimeZone;
 
 import javax.persistence.*;
@@ -13,8 +14,9 @@ public class GuildConfig extends GuildEntity{ // or ConfigEntity?
     @Serial
     private static final long serialVersionUID = 2454633035779855973L;
 
-    @Column
-    private String prefix;
+    @Type(type = "json")
+    @Column(columnDefinition = "json")
+    private List<String> prefixes;
 
     @Column
     private Locale locale;
@@ -24,18 +26,18 @@ public class GuildConfig extends GuildEntity{ // or ConfigEntity?
 
     public static String formatPrefix(String prefix){
         Objects.requireNonNull(prefix, "prefix");
-        if(prefix.chars().filter(Character::isLetter).count() >= 3 || prefix.length() > 4){
+        if(prefix.chars().filter(Character::isLetter).count() >= 2 || prefix.length() > 4){
             return prefix + " ";
         }
         return prefix;
     }
 
-    public String prefix(){
-        return prefix;
+    public List<String> prefixes(){
+        return prefixes;
     }
 
-    public void prefix(String prefix){
-        this.prefix = Objects.requireNonNull(prefix, "prefix");
+    public void prefixes(List<String> prefixes){
+        this.prefixes = Objects.requireNonNull(prefixes, "prefixes");
     }
 
     public Locale locale(){
@@ -57,7 +59,7 @@ public class GuildConfig extends GuildEntity{ // or ConfigEntity?
     @Override
     public String toString(){
         return "GuildConfig{" +
-                "prefix='" + prefix + '\'' +
+                "prefixes=" + prefixes +
                 ", locale=" + locale +
                 ", timeZone=" + timeZone +
                 "} " + super.toString();
