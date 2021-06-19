@@ -88,7 +88,7 @@ public class InteractionCommands{
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
             Snowflake guildId = env.event().getInteraction().getGuildId()
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             BooleanFunction<String> formatBool = bool ->
                     messageService.get(env.context(), bool ? "command.settings.enabled" : "command.settings.disabled");
@@ -163,25 +163,27 @@ public class InteractionCommands{
                                                     .build()))
                                             .collectList()
                                             .flatMap(list -> {
+                                                var tmp = new ArrayList<>(emojis);
                                                 if(add){
+                                                    tmp.addAll(list);
+                                                    if(tmp.size() > 20){
+                                                        return messageService.err(env.event(), "command.settings.emojis.limit");
+                                                    }
+
                                                     emojis.addAll(list);
                                                 }else{
-                                                    if(emojis.size() - list.size() < 1){ // TODO: better size check
+                                                    tmp.removeAll(list);
+                                                    if(tmp.size() < 1){
                                                         return messageService.err(env.event(), "command.settings.emojis.no-emojis");
                                                     }
 
                                                     emojis.removeAll(list);
                                                 }
 
-                                                if(emojis.size() > 20){
-                                                    return messageService.err(env.event(), "command.settings.emojis.limit");
-                                                }
-
                                                 if(add){
                                                     return messageService.text(env.event(), "command.settings.added",
                                                             formatCollection(list, DiscordUtil::getEmojiString));
                                                 }
-
                                                 return messageService.text(env.event(), "command.settings.removed",
                                                         formatCollection(list, DiscordUtil::getEmojiString));
                                             });
@@ -198,8 +200,13 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(),
                                         "command.settings.negative-number").then(Mono.empty()))
                                 .flatMap(l -> {
-                                    starboardConfig.lowerStarBarrier(Math.toIntExact(l)); // TODO: use long
-                                    return messageService.text(env.event(), "command.settings.lower-star-barrier.update", l)
+                                    int i = (int)(long)l;
+                                    if(i != l){
+                                        return messageService.err(env.event(), "command.settings.overflow-number");
+                                    }
+
+                                    starboardConfig.lowerStarBarrier(i);
+                                    return messageService.text(env.event(), "command.settings.lower-star-barrier.update", i)
                                             .and(entityRetriever.save(starboardConfig));
                                 });
 
@@ -272,8 +279,13 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(),
                                         "command.settings.negative-number").then(Mono.empty()))
                                 .flatMap(l -> {
-                                    activeUserConfig.messageBarrier(Math.toIntExact(l)); // TODO: use long
-                                    return messageService.text(env.event(), "command.settings.message-barrier.update", l)
+                                    int i = (int)(long)l;
+                                    if(i != l){
+                                        return messageService.err(env.event(), "command.settings.overflow-number");
+                                    }
+
+                                    activeUserConfig.messageBarrier(i);
+                                    return messageService.text(env.event(), "command.settings.message-barrier.update", i)
                                             .and(entityRetriever.save(activeUserConfig));
                                 });
 
@@ -366,7 +378,6 @@ public class InteractionCommands{
 
                                     boolean add = choice.equals("add");
 
-                                    List<String> toHelp = new ArrayList<>();
                                     List<Snowflake> removed = new ArrayList<>();
                                     String[] text = enums.split("(\\s+)?,(\\s+)?");
                                     Mono<Void> fetch = Flux.fromArray(text)
@@ -376,38 +387,23 @@ public class InteractionCommands{
                                                     role.getId().equals(MessageUtil.parseRoleId(str)))
                                             .doOnNext(role -> {
                                                 if(add){
-                                                    if(!roleIds.add(role.getId())){
-                                                        toHelp.add(messageService.format(env.context(),
-                                                                "command.settings.admin-roles.already-set", str));
-                                                    }
+                                                    roleIds.add(role.getId());
                                                 }else{
-                                                    if(!roleIds.remove(role.getId())){
-                                                        toHelp.add(messageService.format(env.context(),
-                                                                "command.settings.admin-roles.already-remove", str));
-                                                    }else{
+                                                    if(roleIds.remove(role.getId())){
                                                         removed.add(role.getId());
                                                     }
                                                 }
-                                            })
-                                            .switchIfEmpty(Mono.fromRunnable(() -> toHelp.add(messageService.format(env.context(),
-                                                    "command.settings.admin-roles.unknown", str)))))
+                                            }))
                                             .then();
 
                                     return fetch.then(Mono.defer(() -> {
-                                        if(toHelp.isEmpty()){
-                                            adminConfig.adminRoleIds(roleIds);
-                                            if(add){
-                                                return messageService.text(env.event(), "command.settings.added",
-                                                        formatCollection(roleIds, DiscordUtil::getRoleMention));
-                                            }
-                                            return messageService.text(env.event(), "command.settings.removed",
-                                                    formatCollection(removed, DiscordUtil::getRoleMention));
-                                        }else{
-                                            String response = toHelp.stream()
-                                                    .map(s -> " • " + s + "\n")
-                                                    .collect(Collectors.joining());
-                                            return messageService.error(env.event(), "command.settings.admin-roles.conflicted.title", response);
+                                        adminConfig.adminRoleIds(roleIds);
+                                        if(add){
+                                            return messageService.text(env.event(), "command.settings.added",
+                                                    formatCollection(roleIds, DiscordUtil::getRoleMention));
                                         }
+                                        return messageService.text(env.event(), "command.settings.removed",
+                                                formatCollection(removed, DiscordUtil::getRoleMention));
                                     }));
                                 }))).and(entityRetriever.save(adminConfig));
 
@@ -504,12 +500,8 @@ public class InteractionCommands{
                                             .map(type -> Tuples.of(type, messageService.getEnum(env.context(), type)))
                                             .collect(Collectors.toUnmodifiableList());
 
-                                    List<String> onlyNames = all.stream().map(Tuple2::getT2)
-                                            .collect(Collectors.toUnmodifiableList());
-
                                     boolean add = choice.equals("add");
 
-                                    List<String> toHelp = new ArrayList<>();
                                     Set<String> removed = new HashSet<>();
                                     if(enums.equalsIgnoreCase("all")){
                                         if(add){
@@ -522,45 +514,26 @@ public class InteractionCommands{
                                         for(String s : text){
                                             all.stream().filter(predicate((type, str) -> str.equalsIgnoreCase(s)))
                                                     .findFirst()
-                                                    .ifPresentOrElse(consumer((type, str) -> {
+                                                    .ifPresent(consumer((type, str) -> {
                                                         if(add){
-                                                            if(!flags.add(type)){
-                                                                toHelp.add(messageService.format(env.context(),
-                                                                        "command.settings.actions.already-set", s));
-                                                            }
+                                                            flags.add(type);
                                                         }else{
-                                                            if(!flags.remove(type)){
-                                                                toHelp.add(messageService.format(env.context(),
-                                                                        "command.settings.actions.already-remove", s));
-                                                            }else{
+                                                            if(flags.remove(type)){
                                                                 removed.add(str);
                                                             }
                                                         }
-                                                    }), () -> {
-                                                        String suggest = Strings.findClosest(onlyNames, s);
-                                                        String response = suggest != null ? messageService.format(env.context(),
-                                                            "command.settings.actions.unknown.suggest", s, suggest) :
-                                                                messageService.format(env.context(), "command.settings.actions.unknown", s);
-                                                        toHelp.add(response);
-                                                    });
+                                                    }));
                                         }
                                     }
 
-                                    if(toHelp.isEmpty()){
-                                        auditConfig.types(flags);
-                                        if(add){
-                                            String formatted = formatCollection(flags,
-                                                    type -> messageService.getEnum(env.context(), type));
+                                    if(add){
+                                        String formatted = formatCollection(flags,
+                                                type -> messageService.getEnum(env.context(), type));
 
-                                            return messageService.text(env.event(), "command.settings.added", formatted);
-                                        }
-
-                                        return messageService.text(env.event(), "command.settings.removed",
-                                                String.join(", ", removed));
+                                        return messageService.text(env.event(), "command.settings.added", formatted);
                                     }
-
-                                    String response = toHelp.stream().map(s -> " • " + s + "\n").collect(Collectors.joining());
-                                    return messageService.error(env.event(), "command.settings.actions.conflicted.title", response);
+                                    return messageService.text(env.event(), "command.settings.removed",
+                                            String.join(", ", removed));
                                 }))).and(entityRetriever.save(auditConfig));
 
                         return Mono.justOrEmpty(group.getOption("enable"))
@@ -1132,7 +1105,7 @@ public class InteractionCommands{
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
             Member author = env.event().getInteraction().getMember()
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             Mono<TextChannel> reply = env.getReplyChannel().cast(TextChannel.class);
 
@@ -1274,7 +1247,7 @@ public class InteractionCommands{
                     .getOption("expression")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return Commands.MathCommand.createExpression(expression).publishOn(Schedulers.boundedElastic())
                     .onErrorResume(t -> t instanceof ArithmeticException || t instanceof Expression.ExpressionException ||
