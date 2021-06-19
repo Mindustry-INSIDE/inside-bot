@@ -590,13 +590,14 @@ public class InteractionCommands{
                                 .flatMap(str -> {
                                     Locale locale = LocaleUtil.get(str);
                                     if(locale == null){
-                                        String all = formatCollection(LocaleUtil.locales.values(), Locale::toString);
+                                        String all = formatCollection(LocaleUtil.locales.values(), locale1 ->
+                                                "%s (`%s`)".formatted(locale1.getDisplayName(), locale1.toString()));
                                         return messageService.text(env.event(), "command.settings.locale.all", all);
                                     }
 
                                     guildConfig.locale(locale);
                                     return Mono.deferContextual(ctx -> messageService.text(env.event(), "command.settings.locale.update",
-                                            ctx.<Locale>get(KEY_LOCALE)))
+                                            ctx.<Locale>get(KEY_LOCALE).getDisplayName()))
                                             .contextWrite(ctx -> ctx.put(KEY_LOCALE, locale))
                                             .and(entityRetriever.save(guildConfig));
                                 });

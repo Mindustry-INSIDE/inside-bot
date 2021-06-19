@@ -918,14 +918,15 @@ public class Commands{
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(locale == null){
                             String all = LocaleUtil.locales.values().stream()
-                                    .map(Locale::toString)
+                                    .map(locale1 -> "%s (`%s`)".formatted(locale1.getDisplayName(), locale1.toString()))
                                     .collect(Collectors.joining(", "));
 
                             return messageService.text(env, "command.settings.locale.all", all);
                         }
 
                         guildConfig.locale(locale);
-                        return Mono.deferContextual(ctx -> messageService.text(env, "command.settings.locale.update", ctx.<Locale>get(KEY_LOCALE)))
+                        return Mono.deferContextual(ctx -> messageService.text(env, "command.settings.locale.update",
+                                ctx.<Locale>get(KEY_LOCALE).getDisplayName()))
                                 .contextWrite(ctx -> ctx.put(KEY_LOCALE, locale))
                                 .and(entityRetriever.save(guildConfig));
                     }).thenReturn(guildConfig))
