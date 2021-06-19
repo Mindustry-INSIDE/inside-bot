@@ -65,7 +65,7 @@ public class MessageEventHandler extends ReactiveEventAdapter{
         Mono<LocalMember> localMember = entityRetriever.getAndUpdateLocalMemberById(member)
                 .switchIfEmpty(entityRetriever.createLocalMember(member));
 
-        Mono<Void> updateLastSendMessage = localMember.flatMap(localMember0 -> {
+        Mono<Void> updateActivity = localMember.flatMap(localMember0 -> {
             localMember0.activity().lastSentMessage(new DateTime(message.getTimestamp().toEpochMilli()));
             localMember0.activity().incrementMessageCount();
             return entityRetriever.save(localMember0);
@@ -83,15 +83,14 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                 .map(guildConfig -> Context.of(KEY_LOCALE, guildConfig.locale(),
                         KEY_TIMEZONE, guildConfig.timeZone()));
 
-        Mono<Void> handleMessage = Mono.deferContextual(ctx -> localMember.map(localMember0 -> CommandEnvironment.builder()
-                .message(message)
-                .member(member)
-                .context(ctx)
-                .localMember(localMember0)
-                .build())
-                .flatMap(commandHandler::handleMessage));
+        Mono<Void> handleMessage = Mono.deferContextual(ctx ->
+                commandHandler.handleMessage(CommandEnvironment.builder()
+                        .message(message)
+                        .member(member)
+                        .context(ctx)
+                        .build()));
 
-        return initContext.flatMap(context -> Mono.when(handleMessage, updateLastSendMessage, safeMessageInfo).contextWrite(context));
+        return initContext.flatMap(context -> Mono.when(handleMessage, updateActivity, safeMessageInfo).contextWrite(context));
     }
 
     @Override
@@ -128,14 +127,11 @@ public class MessageEventHandler extends ReactiveEventAdapter{
 
                     Mono<?> command = Mono.defer(() -> {
                         if(messageService.isAwaitEdit(message.getId())){
-                            return entityRetriever.getAndUpdateLocalMemberById(member)
-                                    .switchIfEmpty(entityRetriever.createLocalMember(member))
-                                    .flatMap(localMember -> commandHandler.handleMessage(CommandEnvironment.builder()
-                                            .localMember(localMember)
-                                            .message(message)
-                                            .member(member)
-                                            .context(context)
-                                            .build()));
+                            return commandHandler.handleMessage(CommandEnvironment.builder()
+                                    .message(message)
+                                    .member(member)
+                                    .context(context)
+                                    .build());
                         }
                         return Mono.empty();
                     });

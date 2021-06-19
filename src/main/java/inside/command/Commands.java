@@ -52,7 +52,7 @@ import java.util.stream.*;
 
 import static inside.audit.Attribute.COUNT;
 import static inside.audit.BaseAuditProvider.MESSAGE_TXT;
-import static inside.command.Commands.TransliterationCommand.of;
+import static inside.command.Commands.TransliterationCommand.mapOf;
 import static inside.service.MessageService.ok;
 import static inside.util.ContextUtil.*;
 import static reactor.function.TupleUtils.function;
@@ -67,7 +67,9 @@ public class Commands{
 
         @Override
         public Mono<Boolean> filter(CommandEnvironment env){
-            return adminService.isAdmin(env.getAuthorAsMember());
+            return adminService.isAdmin(env.getAuthorAsMember())
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env,
+                            "common.permission-denied").thenReturn(false));
         }
     }
 
@@ -137,9 +139,9 @@ public class Commands{
                     .map(entry -> {
                         String canonicalName = entry.getValue().get(0).getClass()
                                 .getSuperclass().getCanonicalName();
-                        return String.format("• %s (`%s`)", messageService.get(env.context(), canonicalName), entry.getKey());
+                        return String.format("• %s (`%s`)%n", messageService.get(env.context(), canonicalName), entry.getKey());
                     })
-                    .collect(Collectors.joining("\n"))
+                    .collect(Collectors.joining())
                     .flatMap(categoriesStr -> messageService.info(env, spec ->
                             spec.setTitle(messageService.get(env.context(), "command.help"))
                                     .setDescription(categoriesStr)));
@@ -272,7 +274,8 @@ public class Commands{
                         }else if(str.length() > Message.MAX_CONTENT_LENGTH || attachmentMode.get()){
                             spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(str));
                         }
-                    })));
+                    })))
+                    .contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
 
         @Override
@@ -291,7 +294,7 @@ public class Commands{
             String text = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return env.getAuthorAsMember().getGuild()
                     .flatMapMany(guild -> guild.getEmojis(EntityRetrievalStrategy.REST))
@@ -343,7 +346,7 @@ public class Commands{
             String text = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return createExpression(text).publishOn(Schedulers.boundedElastic())
                     .onErrorResume(t -> t instanceof ArithmeticException || t instanceof Expression.ExpressionException ||
@@ -447,7 +450,7 @@ public class Commands{
             String commandName = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             Mono<Long> applicationId = env.getClient().rest()
                     .getApplicationId();
@@ -464,7 +467,7 @@ public class Commands{
 
     @DiscordCommand(key = {"translate", "tr"}, params = "command.translate.params", description = "command.translate.description")
     public static class TranslateCommand extends Command{
-        private final HttpClient httpClient = ReactorResources.DEFAULT_HTTP_CLIENT.get();
+        private final Lazy<HttpClient> httpClient = Lazy.of(ReactorResources.DEFAULT_HTTP_CLIENT);
 
         public static final String[] languages = {
                 "Afrikaans (`af`)", "Albanian (`sq`)", "Amharic (`am`)",
@@ -523,17 +526,17 @@ public class Commands{
             String from = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             String to = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             String text = interaction.getOption(2)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             String paramstr = params(Map.of(
                     "client", "dict-chrome-ex",
@@ -541,7 +544,7 @@ public class Commands{
                     "q", text, "tl", to, "sl", from
             ));
 
-            return httpClient.get().uri("https://translate.google.com/translate_a/t" + paramstr)
+            return httpClient.get().get().uri("https://translate.google.com/translate_a/t" + paramstr)
                     .responseSingle((res, buf) -> buf.asString()
                             .flatMap(byteBuf -> Mono.fromCallable(() ->
                                     JacksonUtil.mapper().readTree(byteBuf))))
@@ -549,7 +552,8 @@ public class Commands{
                             .map(arr -> arr.get(0))
                             .map(single -> single.get("trans").asText())
                             .orElse(MessageService.placeholder))
-                    .flatMap(str -> messageService.text(env, str));
+                    .flatMap(str -> messageService.text(env, str))
+                    .contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
 
         @Override
@@ -593,7 +597,7 @@ public class Commands{
             String text = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return messageService.text(env, en ? text2rus(text) : text2eng(text))
                     .contextWrite(ctx -> ctx.put(KEY_REPLY, true));
@@ -620,7 +624,7 @@ public class Commands{
         public static final Map<String, String> engLeetSpeak;
 
         static{
-            rusLeetSpeak = of(
+            rusLeetSpeak = mapOf(
                     "а", "4", "б", "6", "в", "8", "г", "g",
                     "д", "d", "е", "3", "ё", "3", "ж", "zh",
                     "з", "e", "и", "i", "й", "\\`i", "к", "k",
@@ -632,7 +636,7 @@ public class Commands{
                     "я", "9"
             );
 
-            engLeetSpeak = of(
+            engLeetSpeak = mapOf(
                     "a", "4", "b", "8", "c", "c", "d", "d",
                     "e", "3", "f", "ph", "g", "9", "h", "h",
                     "i", "1", "j", "g", "k", "k", "l", "l",
@@ -701,7 +705,7 @@ public class Commands{
         public static final Map<String, String> translit;
 
         static{
-            translit = of(
+            translit = mapOf(
                     "a", "а", "b", "б", "v", "в", "g", "г",
                     "d", "д", "e", "е", "yo", "ё", "zh", "ж",
                     "z", "з", "i", "и", "j", "й", "k", "к",
@@ -715,7 +719,7 @@ public class Commands{
         }
 
         @SuppressWarnings("unchecked")
-        public static <K, V> Map<K, V> of(Object... values){
+        public static <K, V> Map<K, V> mapOf(Object... values){
             Map<K, V> map = new HashMap<>();
 
             for(int i = 0; i < values.length / 2; ++i){
@@ -780,7 +784,7 @@ public class Commands{
             String range = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             Matcher matcher = rangePattern.matcher(range);
             if(!matcher.matches()){
@@ -826,7 +830,7 @@ public class Commands{
             String value = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
@@ -1296,7 +1300,7 @@ public class Commands{
             String text = interaction.getOption("poll text")
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             String title = text.startsWith("**") && text.lastIndexOf("**") != -1 ?
                     text.substring(0, text.lastIndexOf("**") + 2) : null;
@@ -1351,7 +1355,7 @@ public class Commands{
             String text = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
             return env.getReplyChannel().flatMap(reply -> reply.createMessage(spec -> spec.setContent(messageService.format(env.context(),
                     "command.qpoll.text", env.getAuthorAsMember().getUsername(), text))
@@ -1401,7 +1405,7 @@ public class Commands{
     public static class VoicePauseCommand extends VoiceCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            Snowflake guildId = env.getLocalMember().guildId();
+            Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
             return env.getAuthorAsMember().getVoiceState()
                     .switchIfEmpty(messageService.err(env, "command.voice.not-in-channel").then(Mono.empty()))
@@ -1416,7 +1420,7 @@ public class Commands{
     public static class VoiceLeaveCommand extends VoiceCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            Snowflake guildId = env.getLocalMember().guildId();
+            Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
             return env.getAuthorAsMember().getVoiceState()
                     .switchIfEmpty(messageService.err(env, "command.voice.not-in-channel").then(Mono.empty()))
@@ -1434,7 +1438,7 @@ public class Commands{
     public static class VoiceSkipCommand extends VoiceCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            Snowflake guildId = env.getLocalMember().guildId();
+            Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
             VoiceRegistry voiceRegistry = voiceService.getOrCreate(guildId);
             return env.getAuthorAsMember().getVoiceState()
@@ -1450,7 +1454,7 @@ public class Commands{
     public static class VoiceClearCommand extends VoiceCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            Snowflake guildId = env.getLocalMember().guildId();
+            Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
             VoiceRegistry voiceRegistry = voiceService.getOrCreate(guildId);
             return env.getAuthorAsMember().getVoiceState()
@@ -1466,7 +1470,7 @@ public class Commands{
     public static class VoiceStopCommand extends VoiceCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            Snowflake guildId = env.getLocalMember().guildId();
+            Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
             VoiceRegistry voiceRegistry = voiceService.getOrCreate(guildId);
 
@@ -1503,9 +1507,9 @@ public class Commands{
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
                     .map(str -> !str.startsWith("http:") && !str.startsWith("https:") ? "ytsearch: " + str : str) // for a more convenient search
-                    .orElseThrow(AssertionError::new);
+                    .orElseThrow(IllegalStateException::new);
 
-            VoiceRegistry voiceRegistry = voiceService.getOrCreate(env.getLocalMember().guildId());
+            VoiceRegistry voiceRegistry = voiceService.getOrCreate(env.getAuthorAsMember().getGuildId());
 
             Mono<Void> joinIfNot = Mono.just(env.getAuthorAsMember())
                     .flatMap(Member::getVoiceState)

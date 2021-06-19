@@ -25,7 +25,7 @@ public final class CommandHolder{
     }
 
     @Autowired(required = false)
-    private void init(List<Command> commands){
+    private void registerCommands(List<Command> commands){
         for(Command command : commands){
             CommandInfo info = compile(command);
             this.commands.put(info.text(), command);
@@ -50,7 +50,7 @@ public final class CommandHolder{
         // get 'en' parameter text for validation and option search
         String paramText = messageService.get(Context.of(KEY_LOCALE, LocaleUtil.getDefaultLocale()), meta.params());
         String[] psplit = paramText.split("(?<=(\\]|>))\\s+(?=(\\[|<))");
-        CommandParam[] params = new CommandParam[0];
+        CommandParam[] params = CommandParam.empty;
         if(!paramText.isBlank()){
             params = new CommandParam[psplit.length];
             boolean hadOptional = false;

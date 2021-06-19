@@ -37,6 +37,13 @@ public class AuditServiceImpl implements AuditService{
         this.settings = settings;
     }
 
+    @Autowired(required = false)
+    private void registerProviders(List<AuditProvider> providers){
+        this.providers = providers.stream().collect(Collectors.toMap(
+                p -> p.getClass().getAnnotation(ForwardAuditProvider.class).value(), Function.identity()
+        ));
+    }
+
     @Override
     @Transactional
     public Mono<Void> save(AuditAction action, List<Tuple2<String, InputStream>> attachments){
@@ -66,12 +73,5 @@ public class AuditServiceImpl implements AuditService{
     @Transactional
     public void cleanUp(){
         repository.deleteAllByTimestampBefore(DateTime.now().minus(settings.getAudit().getHistoryKeep().toMillis()));
-    }
-
-    @Autowired(required = false)
-    public void init(List<AuditProvider> providers){
-        this.providers = providers.stream().collect(Collectors.toMap(
-                p -> p.getClass().getAnnotation(ForwardAuditProvider.class).value(), Function.identity()
-        ));
     }
 }

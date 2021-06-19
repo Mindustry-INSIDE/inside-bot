@@ -52,7 +52,6 @@ public class DiscordServiceImpl implements DiscordService{
     public void init(){
         String token = settings.getToken();
         Objects.requireNonNull(token, "token");
-        // StoreServiceLoader storeServiceLoader = new StoreServiceLoader();
 
         gateway = DiscordClientBuilder.create(token)
                 .onClientResponse(ResponseFunction.emptyIfNotFound())
