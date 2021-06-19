@@ -6,6 +6,7 @@ import discord4j.common.ReactorResources;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.domain.VoiceStateUpdateEvent;
 import discord4j.core.object.VoiceState;
+import discord4j.core.object.audit.AuditLogEntry;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.presence.ClientPresence;
@@ -885,7 +886,8 @@ public class Commands{
                     }).thenReturn(guildConfig))
                     .switchIfEmpty(present ?
                             messageService.err(env, "command.owner-only").then(Mono.empty()) :
-                            messageService.text(env, "command.settings.timezone.current", env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
+                            messageService.text(env, "command.settings.timezone.current",
+                                    env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
                     .then(Mono.empty());
         }
 
@@ -932,7 +934,8 @@ public class Commands{
                     }).thenReturn(guildConfig))
                     .switchIfEmpty(present ?
                             messageService.err(env, "command.owner-only").then(Mono.empty()) :
-                            messageService.text(env, "command.settings.locale.current", env.context().<Locale>get(KEY_LOCALE)).then(Mono.empty()))
+                            messageService.text(env, "command.settings.locale.current",
+                                    env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
                     .then(Mono.empty());
         }
     }
@@ -981,8 +984,8 @@ public class Commands{
                             return messageService.err(env, "command.admin.mute.self-user");
                         }
 
-                        if(reason != null && !reason.isBlank() && reason.length() >= 512){
-                            return messageService.err(env, "common.string-limit", 512);
+                        if(reason != null && !reason.isBlank() && reason.length() >= AuditLogEntry.MAX_REASON_LENGTH){
+                            return messageService.err(env, "common.string-limit", AuditLogEntry.MAX_REASON_LENGTH);
                         }
 
                         return adminService.mute(author, member, delay, reason)
