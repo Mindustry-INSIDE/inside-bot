@@ -9,4 +9,6 @@ public interface GuildRepository<T extends GuildEntity> extends BaseRepository<T
     T findByGuildId(long id);
 
     void deleteByGuildId(long id);
+
+    void deleteAllByGuildId(long id);
 }

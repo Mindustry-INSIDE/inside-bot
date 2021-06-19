@@ -174,4 +174,18 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                             return entityRetriever.save(localMember).and(logRoleUpdate);
                         })).contextWrite(context));
     }
+
+    @Override
+    public Publisher<?> onGuildDelete(GuildDeleteEvent event){
+        Snowflake guildId = event.getGuildId();
+        return entityRetriever.deleteAllStarboardsInGuild(guildId)
+                .and(entityRetriever.deleteAllEmojiDispenserInGuild(guildId))
+                .and(entityRetriever.deleteAllLocalMembersInGuild(guildId))
+                .and(entityRetriever.deleteAllMessageInfoInGuild(guildId))
+                .and(entityRetriever.deleteAuditConfigById(guildId))
+                .and(entityRetriever.deleteGuildConfigById(guildId))
+                .and(entityRetriever.deleteAdminConfigById(guildId))
+                .and(entityRetriever.deleteActiveUserConfigById(guildId))
+                .and(entityRetriever.deleteStarboardConfigById(guildId));
+    }
 }

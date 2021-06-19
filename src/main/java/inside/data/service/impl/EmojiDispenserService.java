@@ -5,6 +5,7 @@ import inside.data.entity.EmojiDispenser;
 import inside.data.repository.EmojiDispenserRepository;
 import inside.data.service.BaseLongObjEntityService;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 @Service
@@ -18,5 +19,9 @@ public class EmojiDispenserService extends BaseLongObjEntityService<EmojiDispens
     @Override
     protected EmojiDispenser find0(long id){
         return repository.findByMessageId(id);
+    }
+
+    public Mono<Void> deleteAllByGuildId(long guildId){
+        return Mono.fromRunnable(() -> repository.deleteAllByGuildId(guildId));
     }
 }

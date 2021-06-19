@@ -9,6 +9,7 @@ import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 @Service
@@ -24,6 +25,10 @@ public class LocalMemberService extends BaseEntityService<LongLongTuple2, LocalM
         long userId = id.getT1();
         long guildId = id.getT2();
         return repository.findByUserIdAndGuildId(userId, guildId);
+    }
+
+    public Mono<Void> deleteAllByGuildId(long guildId){
+        return Mono.fromRunnable(() -> repository.deleteAllByGuildId(guildId));
     }
 
     @Override

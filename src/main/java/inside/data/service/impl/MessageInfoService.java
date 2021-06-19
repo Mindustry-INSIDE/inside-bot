@@ -8,6 +8,7 @@ import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 // or LongLongTuple2?
@@ -22,6 +23,10 @@ public class MessageInfoService extends BaseLongObjEntityService<MessageInfo, Me
     @Override
     protected MessageInfo find0(long id){
         return repository.findByMessageId(id);
+    }
+
+    public Mono<Void> deleteAllByGuildId(long guildId){
+        return Mono.fromRunnable(() -> repository.deleteAllByGuildId(guildId));
     }
 
     @Override

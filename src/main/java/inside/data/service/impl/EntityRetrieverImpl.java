@@ -53,6 +53,12 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Void> deleteGuildConfigById(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getGuildConfigService().delete(guildId.asLong());
+    }
+
+    @Override
     public Mono<AdminConfig> getAdminConfigById(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
         return storeHolder.getAdminConfigService().find(guildId.asLong());
@@ -65,6 +71,12 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Void> deleteAdminConfigById(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getActiveUserConfigService().delete(guildId.asLong());
+    }
+
+    @Override
     public Mono<AuditConfig> getAuditConfigById(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
         return storeHolder.getAuditConfigService().find(guildId.asLong());
@@ -74,6 +86,12 @@ public class EntityRetrieverImpl implements EntityRetriever{
     public Mono<Void> save(AuditConfig auditConfig){
         Objects.requireNonNull(auditConfig, "auditConfig");
         return storeHolder.getAuditConfigService().save(auditConfig);
+    }
+
+    @Override
+    public Mono<Void> deleteAuditConfigById(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getAuditConfigService().delete(guildId.asLong());
     }
 
     @Override
@@ -108,9 +126,21 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Void> deleteAllLocalMembersInGuild(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getLocalMemberService().deleteAllByGuildId(guildId.asLong());
+    }
+
+    @Override
     public Mono<MessageInfo> getMessageInfoById(Snowflake messageId){
         Objects.requireNonNull(messageId, "messageId");
         return storeHolder.getMessageInfoService().find(messageId.asLong());
+    }
+
+    @Override
+    public Mono<Void> save(MessageInfo messageInfo){
+        Objects.requireNonNull(messageInfo, "messageInfo");
+        return storeHolder.getMessageInfoService().save(messageInfo);
     }
 
     @Override
@@ -119,15 +149,15 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
-    public Mono<Void> delete(MessageInfo messageInfo){
-        Objects.requireNonNull(messageInfo, "messageInfo");
-        return storeHolder.getMessageInfoService().delete(messageInfo);
+    public Mono<Void> deleteAllMessageInfoInGuild(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getMessageInfoService().deleteAllByGuildId(guildId.asLong());
     }
 
     @Override
-    public Mono<Void> save(MessageInfo messageInfo){
+    public Mono<Void> delete(MessageInfo messageInfo){
         Objects.requireNonNull(messageInfo, "messageInfo");
-        return storeHolder.getMessageInfoService().save(messageInfo);
+        return storeHolder.getMessageInfoService().delete(messageInfo);
     }
 
     @Override
@@ -143,10 +173,22 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Void> deleteStarboardConfigById(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getStarboardConfigService().delete(guildId.asLong());
+    }
+
+    @Override
     public Mono<Starboard> getStarboardById(Snowflake guildId, Snowflake sourceMessageId){
         Objects.requireNonNull(guildId, "guildId");
         Objects.requireNonNull(sourceMessageId, "sourceMessageId");
         return storeHolder.getStarboardService().find(LongLongTuple2.of(guildId.asLong(), sourceMessageId.asLong()));
+    }
+
+    @Override
+    public Mono<Void> save(Starboard starboard){
+        Objects.requireNonNull(starboard, "starboard");
+        return storeHolder.getStarboardService().save(starboard);
     }
 
     @Override
@@ -161,9 +203,9 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
-    public Mono<Void> save(Starboard starboard){
-        Objects.requireNonNull(starboard, "starboard");
-        return storeHolder.getStarboardService().save(starboard);
+    public Mono<Void> deleteAllStarboardsInGuild(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getStarboardService().deleteAllByGuildId(guildId.asLong());
     }
 
     @Override
@@ -179,9 +221,21 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Void> deleteActiveUserConfigById(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getActiveUserConfigService().delete(guildId.asLong());
+    }
+
+    @Override
     public Mono<EmojiDispenser> getEmojiDispenserById(Snowflake messageId){
         Objects.requireNonNull(messageId, "messageId");
         return storeHolder.getEmojiDispenserService().find(messageId.asLong());
+    }
+
+    @Override
+    public Mono<Void> save(EmojiDispenser emojiDispenser){
+        Objects.requireNonNull(emojiDispenser, "emojiDispenser");
+        return storeHolder.getEmojiDispenserService().save(emojiDispenser);
     }
 
     @Override
@@ -191,9 +245,9 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
-    public Mono<Void> save(EmojiDispenser emojiDispenser){
-        Objects.requireNonNull(emojiDispenser, "emojiDispenser");
-        return storeHolder.getEmojiDispenserService().save(emojiDispenser);
+    public Mono<Void> deleteAllEmojiDispenserInGuild(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getEmojiDispenserService().deleteAllByGuildId(guildId.asLong());
     }
 
     @Override

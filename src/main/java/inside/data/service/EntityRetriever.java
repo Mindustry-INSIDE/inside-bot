@@ -14,17 +14,23 @@ public interface EntityRetriever{
 
     Mono<Void> save(GuildConfig guildConfig);
 
+    Mono<Void> deleteGuildConfigById(Snowflake guildId);
+
     // admin config
 
     Mono<AdminConfig> getAdminConfigById(Snowflake guildId);
 
     Mono<Void> save(AdminConfig adminConfig);
 
+    Mono<Void> deleteAdminConfigById(Snowflake guildId);
+
     // audit config
 
     Mono<AuditConfig> getAuditConfigById(Snowflake guildId);
 
     Mono<Void> save(AuditConfig auditConfig);
+
+    Mono<Void> deleteAuditConfigById(Snowflake guildId);
 
     // member
 
@@ -36,15 +42,19 @@ public interface EntityRetriever{
 
     Mono<Void> save(LocalMember localMember);
 
+    Mono<Void> deleteAllLocalMembersInGuild(Snowflake guildId);
+
     // message info
 
     Mono<MessageInfo> getMessageInfoById(Snowflake messageId);
 
-    Mono<Void> deleteMessageInfoById(Snowflake messageId);
+    Mono<Void> save(MessageInfo messageInfo);
 
     Mono<Void> delete(MessageInfo messageInfo);
 
-    Mono<Void> save(MessageInfo messageInfo);
+    Mono<Void> deleteMessageInfoById(Snowflake messageId);
+
+    Mono<Void> deleteAllMessageInfoInGuild(Snowflake guildId);
 
     // starboard config
 
@@ -52,15 +62,19 @@ public interface EntityRetriever{
 
     Mono<Void> save(StarboardConfig starboardConfig);
 
+    Mono<Void> deleteStarboardConfigById(Snowflake guildId);
+
     // starboard
 
     Mono<Starboard> getStarboardById(Snowflake guildId, Snowflake sourceMessageId);
 
     Mono<Void> deleteStarboardById(Snowflake guildId, Snowflake sourceMessageId);
 
+    Mono<Void> save(Starboard starboard);
+
     Mono<Void> delete(Starboard starboard);
 
-    Mono<Void> save(Starboard starboard);
+    Mono<Void> deleteAllStarboardsInGuild(Snowflake guildId);
 
     // active user config
 
@@ -68,13 +82,17 @@ public interface EntityRetriever{
 
     Mono<Void> save(ActiveUserConfig activeUserConfig);
 
+    Mono<Void> deleteActiveUserConfigById(Snowflake guildId);
+
     // emoji dispenser
 
     Mono<EmojiDispenser> getEmojiDispenserById(Snowflake messageId);
 
+    Mono<Void> save(EmojiDispenser emojiDispenser);
+
     Mono<Void> delete(EmojiDispenser emojiDispenser);
 
-    Mono<Void> save(EmojiDispenser emojiDispenser);
+    Mono<Void> deleteAllEmojiDispenserInGuild(Snowflake guildId);
 
     // factory methods
 

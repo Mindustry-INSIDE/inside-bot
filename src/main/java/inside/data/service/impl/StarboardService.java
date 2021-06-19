@@ -6,6 +6,7 @@ import inside.data.entity.Starboard;
 import inside.data.repository.StarboardRepository;
 import inside.data.service.BaseEntityService;
 import org.springframework.stereotype.Service;
+import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
 @Service
@@ -21,5 +22,9 @@ public class StarboardService extends BaseEntityService<LongLongTuple2, Starboar
         long guildId = id.getT1();
         long sourceMessageId = id.getT2();
         return repository.findByGuildIdAndSourceMessageId(guildId, sourceMessageId);
+    }
+
+    public Mono<Void> deleteAllByGuildId(long guildId){
+        return Mono.fromRunnable(() -> repository.deleteAllByGuildId(guildId));
     }
 }

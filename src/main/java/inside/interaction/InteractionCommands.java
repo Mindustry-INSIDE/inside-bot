@@ -45,7 +45,7 @@ public class InteractionCommands{
         @Override
         public Mono<Boolean> filter(InteractionCommandEnvironment env){
             if(env.event().getInteraction().getMember().isEmpty()){
-                return messageService.err(env.event(), "command.interaction.only-guild").then(Mono.empty());
+                return messageService.err(env.event(), "command.interaction.only-guild").thenReturn(false);
             }
             return Mono.just(true);
         }
@@ -59,7 +59,9 @@ public class InteractionCommands{
         public Mono<Boolean> filter(InteractionCommandEnvironment env){
             Mono<Boolean> isAdmin = env.event().getInteraction().getMember()
                     .map(adminService::isAdmin)
-                    .orElse(Mono.just(false));
+                    .orElse(Mono.just(false))
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(),
+                            "common.permission-denied").thenReturn(false));
 
             return and(super.filter(env), isAdmin);
         }
@@ -79,7 +81,11 @@ public class InteractionCommands{
             Mono<Boolean> isGuildManager = member.getHighestRole()
                     .map(role -> role.getPermissions().contains(Permission.MANAGE_GUILD));
 
-            return and(super.filter(env), or(isOwner, isGuildManager));
+            Mono<Boolean> resp = or(isOwner, isGuildManager)
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(),
+                            "command.owner-only").thenReturn(false));
+
+            return and(super.filter(env), resp);
         }
     }
 
