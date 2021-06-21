@@ -20,6 +20,7 @@ import inside.audit.*;
 import inside.command.model.*;
 import inside.data.entity.*;
 import inside.data.service.AdminService;
+import inside.scheduler.job.RemindJob;
 import inside.service.MessageService;
 import inside.util.*;
 import inside.util.codec.Base64Coder;
@@ -27,8 +28,10 @@ import inside.util.io.ReusableByteInputStream;
 import inside.voice.*;
 import org.joda.time.*;
 import org.joda.time.format.*;
+import org.quartz.*;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import reactor.bool.BooleanUtils;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
@@ -47,6 +50,7 @@ import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.*;
+import java.util.regex.Matcher;
 import java.util.regex.*;
 import java.util.stream.*;
 
@@ -941,6 +945,43 @@ public class Commands{
                             messageService.text(env, "command.settings.locale.current",
                                     env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
                     .then(Mono.empty());
+        }
+    }
+
+    @DiscordCommand(key = "remind", params = "command.remind.params", description = "command.remind.description")
+    public static class RemindCommand extends Command{
+        private static final Logger log = Loggers.getLogger(RemindCommand.class);
+
+        @Autowired
+        private SchedulerFactoryBean schedulerFactoryBean;
+
+        @Override
+        public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
+            DateTime time = interaction.getOption(0)
+                    .flatMap(CommandOption::getValue)
+                    .map(OptionValue::asDateTime)
+                    .orElse(null);
+
+            String text = interaction.getOption(1)
+                    .flatMap(CommandOption::getValue)
+                    .map(OptionValue::asString)
+                    .orElseThrow(IllegalStateException::new);
+
+            if(time == null){
+                return messageService.err(env, "message.error.invalid-time");
+            }
+
+            Member member = env.getAuthorAsMember();
+            JobDetail job = RemindJob.createDetails(member.getGuildId(), member.getId(),
+                    env.getMessage().getChannelId(), text);
+
+            Trigger trigger = TriggerBuilder.newTrigger()
+                    .startAt(time.toDate())
+                    .withSchedule(SimpleScheduleBuilder.simpleSchedule())
+                    .build();
+
+            Try.run(() -> schedulerFactoryBean.getScheduler().scheduleJob(job, trigger));
+            return env.getMessage().addReaction(MessageService.ok);
         }
     }
 

@@ -12,7 +12,8 @@ public abstract class Strings{
     }
 
     public static boolean isEmpty(@Nullable CharSequence cs){
-        return cs == null || cs.length() == 0;
+        return cs == null || cs.length() == 0 ||
+                cs instanceof String s && s.isBlank();
     }
 
     public static boolean isNotEmpty(@Nullable CharSequence cs){
