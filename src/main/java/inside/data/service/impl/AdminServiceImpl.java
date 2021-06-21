@@ -7,10 +7,12 @@ import inside.audit.*;
 import inside.data.entity.*;
 import inside.data.repository.AdminActionRepository;
 import inside.data.service.*;
-import inside.service.DiscordService;
+import inside.scheduler.job.*;
+import inside.util.Try;
 import org.joda.time.DateTime;
+import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.scheduling.quartz.SchedulerFactoryBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.*;
@@ -19,7 +21,6 @@ import reactor.util.annotation.Nullable;
 import java.util.Set;
 
 import static inside.audit.Attribute.*;
-import static inside.util.ContextUtil.*;
 import static reactor.function.TupleUtils.function;
 
 @Service
@@ -29,18 +30,18 @@ public class AdminServiceImpl implements AdminService{
 
     private final EntityRetriever entityRetriever;
 
-    private final DiscordService discordService;
-
     private final AuditService auditService;
+
+    private final SchedulerFactoryBean schedulerFactoryBean;
 
     public AdminServiceImpl(@Autowired AdminActionRepository repository,
                             @Autowired EntityRetriever entityRetriever,
-                            @Autowired DiscordService discordService,
-                            @Autowired AuditService auditService){
+                            @Autowired AuditService auditService,
+                            @Autowired SchedulerFactoryBean schedulerFactoryBean){
         this.repository = repository;
         this.entityRetriever = entityRetriever;
-        this.discordService = discordService;
         this.auditService = auditService;
+        this.schedulerFactoryBean = schedulerFactoryBean;
     }
 
     @Override
@@ -81,7 +82,13 @@ public class AdminServiceImpl implements AdminService{
                 .flatMap(adminConfig -> Mono.justOrEmpty(adminConfig.muteRoleID()))
                 .flatMap(target::addRole);
 
-        return Mono.when(saveAction, addRole, log);
+        Mono<Void> scheduleUnmute = Mono.fromRunnable(() -> Try.run(() ->
+                schedulerFactoryBean.getScheduler().scheduleJob(UnmuteJob.createDetails(target), TriggerBuilder.newTrigger()
+                        .startAt(end.toDate())
+                        .withSchedule(SimpleScheduleBuilder.simpleSchedule())
+                        .build())));
+
+        return Mono.when(saveAction, addRole, log, scheduleUnmute);
     }
 
     @Override
@@ -120,7 +127,7 @@ public class AdminServiceImpl implements AdminService{
 
         return Mono.zip(entityRetriever.getAndUpdateLocalMemberById(admin), entityRetriever.getAndUpdateLocalMemberById(target),
                 getOrCreateAdminConfig)
-                .flatMap(function((adminLocalMember, targetLocalMember, adminConfig) -> Mono.fromRunnable(() -> repository.save(AdminAction.builder()
+                .map(function((adminLocalMember, targetLocalMember, adminConfig) -> repository.save(AdminAction.builder()
                         .guildId(admin.getGuildId())
                         .type(AdminActionType.warn)
                         .admin(adminLocalMember)
@@ -128,7 +135,12 @@ public class AdminServiceImpl implements AdminService{
                         .reason(reason)
                         .timestamp(DateTime.now())
                         .endTimestamp(DateTime.now().plus(adminConfig.warnExpireDelay()))
-                        .build()))));
+                        .build())))
+                .map(adminAction -> Try.run(() -> schedulerFactoryBean.getScheduler().scheduleJob(UnwarnJob.createDetails(adminAction), TriggerBuilder.newTrigger()
+                        .startAt(adminAction.endTimestamp().orElseThrow(IllegalStateException::new).toDate())
+                        .withSchedule(SimpleScheduleBuilder.simpleSchedule())
+                        .build())))
+                .then();
     }
 
     @Override
@@ -161,25 +173,5 @@ public class AdminServiceImpl implements AdminService{
                 .any(set -> set.contains(Permission.ADMINISTRATOR));
 
         return Mono.zip(isOwner(member), isAdmin, isPermissed).map(function((owner, admin, permissed) -> owner || admin || permissed));
-    }
-
-    @Override
-    @Transactional
-    @Scheduled(cron = "0 */3 * * * *")
-    public void warningsMonitor(){
-        repository.deleteAllByTypeAndEndTimestampBefore(AdminActionType.warn, DateTime.now());
-    }
-
-    @Override
-    @Scheduled(cron = "0 * * * * *")
-    public void mutesMonitor(){
-        getAll(AdminActionType.mute)
-                .filter(AdminAction::isEnd)
-                .flatMap(adminAction -> discordService.gateway()
-                        .getMemberById(adminAction.guildId(), adminAction.target().userId()))
-                .flatMap(target -> entityRetriever.getGuildConfigById(target.getGuildId()).flatMap(guildConfig ->
-                        unmute(target).contextWrite(ctx -> ctx.put(KEY_LOCALE, guildConfig.locale())
-                        .put(KEY_TIMEZONE, guildConfig.timeZone()))))
-                .subscribe();
     }
 }

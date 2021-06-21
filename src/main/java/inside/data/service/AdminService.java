@@ -41,8 +41,4 @@ public interface AdminService{
     Mono<Boolean> isOwner(Member member);
 
     Mono<Boolean> isAdmin(Member member);
-
-    void warningsMonitor();
-
-    void mutesMonitor();
 }

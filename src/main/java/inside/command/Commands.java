@@ -1146,7 +1146,7 @@ public class Commands{
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
-                    .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
                     .flatMap(member -> {
                         if(author.equals(member)){
                             return messageService.err(env, "command.admin.warn.self-user");
