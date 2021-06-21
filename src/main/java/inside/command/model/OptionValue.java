@@ -31,7 +31,7 @@ public class OptionValue{
 
     @Nullable
     public DateTime asDateTime(){
-        return MessageUtil.parseTime(value);
+        return Try.ofCallable(() -> MessageUtil.parseTime(value)).orElse(null);
     }
 
     @Override
