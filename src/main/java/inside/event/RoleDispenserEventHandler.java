@@ -23,7 +23,7 @@ public class RoleDispenserEventHandler extends ReactiveEventAdapter{
             return Mono.empty();
         }
 
-        return entityRetriever.getEmojiDispenserById(event.getMessageId())
+        return entityRetriever.getEmojiDispensersById(event.getMessageId())
                 .filter(emojiDispenser -> event.getEmoji().equals(DiscordUtil.toReactionEmoji(emojiDispenser.emoji())))
                 .flatMap(emojiDispenser -> event.getUser().flatMap(user -> user.asMember(guildId))
                         .flatMap(member -> member.addRole(emojiDispenser.roleId())));
@@ -36,7 +36,7 @@ public class RoleDispenserEventHandler extends ReactiveEventAdapter{
             return Mono.empty();
         }
 
-        return entityRetriever.getEmojiDispenserById(event.getMessageId())
+        return entityRetriever.getEmojiDispensersById(event.getMessageId())
                 .filter(emojiDispenser -> event.getEmoji().equals(DiscordUtil.toReactionEmoji(emojiDispenser.emoji())))
                 .flatMap(emojiDispenser -> event.getUser().flatMap(user -> user.asMember(guildId))
                         .flatMap(member -> member.removeRole(emojiDispenser.roleId())));

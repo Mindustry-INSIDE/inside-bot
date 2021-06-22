@@ -10,6 +10,7 @@ import discord4j.rest.util.*;
 import inside.Settings;
 import inside.audit.*;
 import inside.command.Commands;
+import inside.data.entity.EmojiDispenser;
 import inside.data.service.AdminService;
 import inside.service.MessageService;
 import inside.util.*;
@@ -562,8 +563,81 @@ public class InteractionCommands{
                     .zipWith(entityRetriever.getGuildConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createGuildConfig(guildId)))
                     .flatMap(function((group, guildConfig) -> {
-                        Mono<Void> timezoneCommand = Mono.justOrEmpty(group.getOption("timezone")
-                                .flatMap(command -> command.getOption("value")))
+                        Mono<Void> reactionRolesCommand = Mono.justOrEmpty(group.getOption("reaction-roles"))
+                                .flatMap(opt -> Mono.zip(Mono.justOrEmpty(opt.getOption("type")
+                                        .flatMap(ApplicationCommandInteractionOption::getValue))
+                                        .map(ApplicationCommandInteractionOptionValue::asString),
+                                        Mono.just(opt.getOption("message-id")
+                                                .flatMap(ApplicationCommandInteractionOption::getValue)
+                                                .map(ApplicationCommandInteractionOptionValue::asString)),
+                                        Mono.just(opt.getOption("emoji")
+                                                .flatMap(ApplicationCommandInteractionOption::getValue)
+                                                .map(ApplicationCommandInteractionOptionValue::asString)),
+                                        Mono.just(opt.getOption("role")
+                                                .flatMap(ApplicationCommandInteractionOption::getValue)
+                                                .map(ApplicationCommandInteractionOptionValue::asSnowflake))))
+                                .flatMap(function((choice, messageId, emojistr, role) -> {
+                                    if(choice.equals("clear")){
+                                        return entityRetriever.deleteAllEmojiDispenserInGuild(guildId)
+                                                .then(messageService.text(env.event(), "command.settings.reaction-roles.clear"));
+                                    }
+
+                                    Function<EmojiDispenser, String> formatEmojiDispenser = e -> String.format("%s -> %s (%s)\n",
+                                            e.messageId().asString(), DiscordUtil.getRoleMention(e.roleId()),
+                                            DiscordUtil.getEmojiString(DiscordUtil.toReactionEmoji(e.emoji())));
+
+                                    if(choice.equals("help")){
+                                        return entityRetriever.getAllEmojiDispenserInGuild(guildId)
+                                                .map(formatEmojiDispenser)
+                                                .collect(Collectors.joining())
+                                                .flatMap(str -> messageService.text(env.event(), "command.settings.reaction-roles.current", str));
+                                    }
+
+                                    Mono<Snowflake> preparedRoleId = Mono.justOrEmpty(role)
+                                            .switchIfEmpty(messageService.text(env.event(),
+                                                    "command.settings.reaction-roles.role-absent").then(Mono.empty()));
+
+                                    Mono<Snowflake> preparedMessageId = Mono.justOrEmpty(messageId)
+                                            .switchIfEmpty(messageService.text(env.event(),
+                                                    "command.settings.reaction-roles.message-id-absent").then(Mono.empty()))
+                                            .mapNotNull(MessageUtil::parseId) // it's safe
+                                            .switchIfEmpty(messageService.text(env.event(),
+                                                    "command.settings.reaction-roles.incorrect-message-id").then(Mono.empty()));
+
+                                    if(choice.equals("add")){
+                                        Mono<EmojiData> fetchEmoji = Mono.justOrEmpty(emojistr)
+                                                .switchIfEmpty(messageService.text(env.event(),
+                                                        "command.settings.reaction-roles.emoji-absent").then(Mono.empty()))
+                                                .flatMap(str -> env.getClient().getGuildEmojis(guildId)
+                                                        .filter(emoji -> emoji.asFormat().equals(str) || emoji.getName().equals(str) ||
+                                                                emoji.getId().asString().equals(str))
+                                                        .map(GuildEmoji::getData)
+                                                        .defaultIfEmpty(EmojiData.builder()
+                                                                .name(str)
+                                                                .build())
+                                                        .next());
+
+                                        return Mono.zip(preparedMessageId, fetchEmoji, preparedRoleId)
+                                                .filterWhen(ignored -> entityRetriever.getAllEmojiDispenserInGuild(guildId)
+                                                        .count().map(l -> l < 20))
+                                                .switchIfEmpty(messageService.text(env.event(),
+                                                        "command.settings.reaction-roles.limit").then(Mono.empty()))
+                                                .flatMap(function((id, emoji, roleId) -> entityRetriever.createEmojiDispenser(guildId, id, roleId, emoji)
+                                                        .flatMap(emojiDispenser -> messageService.text(env.event(), "command.settings.added",
+                                                                formatEmojiDispenser.apply(emojiDispenser)))));
+                                    }
+
+                                    return Mono.zip(preparedMessageId, preparedRoleId)
+                                            .flatMap(function(entityRetriever::getEmojiDispenserById))
+                                            .flatMap(emojiDispenser -> entityRetriever.delete(emojiDispenser)
+                                                    .thenReturn(emojiDispenser))
+                                            .flatMap(emojiDispenser -> messageService.text(env.event(), "command.settings.removed",
+                                                    formatEmojiDispenser.apply(emojiDispenser)));
+                                }));
+
+                        Mono<Void> timezoneCommand = Mono.justOrEmpty(group.getOption("timezone"))
+                                .switchIfEmpty(reactionRolesCommand.then(Mono.empty()))
+                                .flatMap(command -> Mono.justOrEmpty(command.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.timezone.current",
                                         guildConfig.timeZone()).then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
@@ -720,6 +794,48 @@ public class InteractionCommands{
                                             .name("value")
                                             .description("New time zone")
                                             .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .build())
+                                    .build())
+                            .addOption(ApplicationCommandOptionData.builder()
+                                    .name("reaction-roles")
+                                    .description("Configure reaction roles")
+                                    .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
+                                    .addOption(ApplicationCommandOptionData.builder()
+                                            .name("type")
+                                            .description("Action type")
+                                            .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .required(true)
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Get a help")
+                                                    .value("help")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Add reaction role")
+                                                    .value("add")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Remove reaction role")
+                                                    .value("remove")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("Remove all reaction roles")
+                                                    .value("clear")
+                                                    .build())
+                                            .build())
+                                    .addOption(ApplicationCommandOptionData.builder()
+                                            .name("message-id")
+                                            .description("Target message id")
+                                            .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .build())
+                                    .addOption(ApplicationCommandOptionData.builder()
+                                            .name("emoji")
+                                            .description("Target emoji")
+                                            .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .build())
+                                    .addOption(ApplicationCommandOptionData.builder()
+                                            .name("role")
+                                            .description("Target role")
+                                            .type(ApplicationCommandOptionType.ROLE.getValue())
                                             .build())
                                     .build())
                             .build())

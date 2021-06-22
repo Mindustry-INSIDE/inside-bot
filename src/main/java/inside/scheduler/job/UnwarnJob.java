@@ -5,10 +5,12 @@ import inside.data.entity.AdminAction;
 import inside.data.repository.AdminActionRepository;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import javax.transaction.Transactional;
 import java.util.UUID;
 
+@Component
 public class UnwarnJob implements Job{
     private static final String GROUP = "UnwarnJob-group";
 

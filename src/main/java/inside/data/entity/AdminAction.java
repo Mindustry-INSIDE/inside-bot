@@ -84,11 +84,6 @@ public class AdminAction extends GuildEntity{
         return Optional.ofNullable(endTimestamp);
     }
 
-    @Transient
-    public boolean isEnd(){
-        return endTimestamp().map(delay -> DateTime.now().isAfter(delay)).orElse(false);
-    }
-
     @Override
     public String toString(){
         return "AdminAction{" +

@@ -7,10 +7,13 @@ import inside.service.DiscordService;
 import inside.util.DiscordUtil;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 import reactor.util.*;
 
 import java.util.UUID;
 
+// NOTE: Jobs doesn't require @Component annotation, but the IDE does
+@Component
 public class RemindJob implements Job{
     private static final Logger log = Loggers.getLogger(RemindJob.class);
 

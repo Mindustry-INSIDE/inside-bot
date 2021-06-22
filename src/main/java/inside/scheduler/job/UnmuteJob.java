@@ -6,12 +6,14 @@ import inside.data.service.*;
 import inside.service.DiscordService;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 import java.util.UUID;
 
 import static inside.scheduler.job.RemindJob.*;
 import static inside.util.ContextUtil.*;
 
+@Component
 public class UnmuteJob implements Job{
     private static final String GROUP = "UnmuteJob-group";
 
