@@ -663,7 +663,9 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asString))
                                 .flatMap(str -> {
-                                    DateTimeZone timeZone = Commands.TimezoneCommand.findTimeZone(str);
+                                    DateTimeZone timeZone = Try.ofCallable(() ->
+                                            DateTimeZone.forID(str)).orElse(null);
+
                                     if(timeZone == null){
                                         String suggest = Strings.findClosest(DateTimeZone.getAvailableIDs(), str);
 

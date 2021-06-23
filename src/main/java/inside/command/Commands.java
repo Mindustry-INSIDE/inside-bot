@@ -37,7 +37,6 @@ import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.netty.http.client.HttpClient;
 import reactor.util.*;
-import reactor.util.annotation.Nullable;
 import reactor.util.function.Tuple2;
 
 import java.math.*;
@@ -866,7 +865,8 @@ public class Commands{
             DateTimeZone timeZone = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .map(TimezoneCommand::findTimeZone)
+                    .flatMap(str -> Try.ofCallable(() ->
+                            DateTimeZone.forID(str)).toOptional())
                     .orElse(null);
 
             String str =  interaction.getOption(0)
@@ -896,12 +896,7 @@ public class Commands{
                             messageService.err(env, "command.owner-only").then(Mono.empty()) :
                             messageService.text(env, "command.settings.timezone.current",
                                     env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
-                    .then(Mono.empty());
-        }
-
-        @Nullable
-        public static DateTimeZone findTimeZone(String id){
-            return Try.ofCallable(() -> DateTimeZone.forID(id)).orElse(null);
+                    .then();
         }
     }
 
@@ -928,7 +923,7 @@ public class Commands{
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(locale == null){
                             String all = LocaleUtil.locales.values().stream()
-                                    .map(locale1 -> "%s (`%s`)".formatted(locale1.getDisplayName(), locale1.toString()))
+                                    .map(locale1 -> String.format("%s (`%s`)", locale1.getDisplayName(), locale1))
                                     .collect(Collectors.joining(", "));
 
                             return messageService.text(env, "command.settings.locale.all", all);
@@ -944,7 +939,7 @@ public class Commands{
                             messageService.err(env, "command.owner-only").then(Mono.empty()) :
                             messageService.text(env, "command.settings.locale.current",
                                     env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
-                    .then(Mono.empty());
+                    .then();
         }
     }
 
@@ -1358,26 +1353,25 @@ public class Commands{
             Mono<MessageChannel> channel = env.getReplyChannel();
             Member author = env.getAuthorAsMember();
 
+            // sudo poll title a
             String text = interaction.getOption("poll text")
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
                     .orElseThrow(IllegalStateException::new);
 
-            String title = text.startsWith("**") && text.lastIndexOf("**") != -1 ?
-                    text.substring(0, text.lastIndexOf("**") + 2) : null;
-
-            if(title == null || title.equals("**")){
+            String[] vars = text.split("(?<!\\\\)" + Pattern.quote(","));
+            String title = vars.length > 0 ? vars[0] : null;
+            if(Strings.isEmpty(title)){
                 return messageService.err(env, "command.poll.title").then(Mono.empty());
             }
 
-            String striped = text.substring(title.length());
-            int count = striped.split("\\d+.+").length;
-            if(count <= 0 || striped.isEmpty()){
+            int count = vars.length - 1;
+            if(count <= 0){
                 return messageService.err(env, "command.poll.empty-variants");
             }
 
             if(count > emojis.length){
-                return messageService.err(env, "common.limit-number", 10);
+                return messageService.err(env, "common.limit-number", emojis.length - 1);
             }
 
             BiFunction<Message, Integer, Mono<Message>> reactions = (message, integer) -> Flux.fromArray(emojis)
@@ -1385,15 +1379,15 @@ public class Commands{
                     .flatMap(message::addReaction)
                     .then(Mono.just(message));
 
-            Mono<Void> message = channel.flatMap(reply -> reply.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
+            return channel.flatMap(reply -> reply.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
                     .setEmbed(embed -> embed.setTitle(title)
                     .setColor(settings.getDefaults().getNormalColor())
-                    .setDescription(text.substring(title.length()))
+                    .setDescription(IntStream.range(1, vars.length)
+                            .mapToObj(i -> String.format("**%d**. %s%n", i, vars[i]))
+                            .collect(Collectors.joining()))
                     .setAuthor(author.getUsername(), null, author.getAvatarUrl()))))
                     .flatMap(poll -> Mono.defer(() -> reactions.apply(poll, count)))
                     .then();
-
-            return message.and(env.getMessage().delete());
         }
 
         @Override
