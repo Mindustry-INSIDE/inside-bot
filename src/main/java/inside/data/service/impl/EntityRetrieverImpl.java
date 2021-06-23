@@ -292,6 +292,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
             adminConfig.maxWarnCount(settings.getDefaults().getMaxWarnings());
             adminConfig.muteBaseDelay(Duration.millis(settings.getDefaults().getMuteEvade().toMillis())); // TODO: use joda or java.time?
             adminConfig.warnExpireDelay(Duration.millis(settings.getDefaults().getWarnExpire().toMillis()));
+            adminConfig.thresholdAction(settings.getDefaults().getThresholdAction());
             return save(adminConfig).thenReturn(adminConfig);
         });
     }

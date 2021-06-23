@@ -1152,8 +1152,8 @@ public class Commands{
                             return messageService.err(env, "command.admin.warn.self-user");
                         }
 
-                        if(!Strings.isEmpty(reason) && reason.length() >= 512){
-                            return messageService.err(env, "common.string-limit", 512);
+                        if(!Strings.isEmpty(reason) && reason.length() >= AuditLogEntry.MAX_REASON_LENGTH){
+                            return messageService.err(env, "common.string-limit", AuditLogEntry.MAX_REASON_LENGTH);
                         }
 
                         Mono<Void> warnings = Mono.defer(() -> adminService.warnings(member).count()).flatMap(count -> {
@@ -1161,9 +1161,19 @@ public class Commands{
 
                             Mono<AdminConfig> config = entityRetriever.getAdminConfigById(guildId)
                                     .switchIfEmpty(entityRetriever.createAdminConfig(guildId));
-                            return message.then(config.filter(adminConfig -> count >= adminConfig.maxWarnCount())
-                                    .flatMap(ignored -> author.getGuild().flatMap(guild ->
-                                            guild.ban(member.getId(), spec -> spec.setDeleteMessageDays(0)))));
+
+                            Mono<Void> thresholdCheck = config.filter(adminConfig -> count >= adminConfig.maxWarnCount())
+                                    .flatMap(adminConfig -> switch(adminConfig.thresholdAction()){
+                                        case ban -> author.getGuild().flatMap(guild ->
+                                                guild.ban(member.getId(), spec -> spec.setDeleteMessageDays(0)));
+                                        case kick -> author.kick();
+                                        case mute -> author.getGuild().flatMap(Guild::getOwner)
+                                                .flatMap(owner -> adminService.mute(owner, author,
+                                                        DateTime.now().plus(adminConfig.muteBaseDelay()), null));
+                                        default -> Mono.empty();
+                                    });
+
+                            return message.then(thresholdCheck);
                         });
 
                         return adminService.warn(author, member, reason).then(warnings);

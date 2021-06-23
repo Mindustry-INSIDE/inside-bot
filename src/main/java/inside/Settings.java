@@ -1,6 +1,7 @@
 package inside;
 
 import discord4j.rest.util.Color;
+import inside.data.entity.AdminActionType;
 import org.joda.time.DateTimeZone;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
@@ -118,6 +119,8 @@ public class Settings{
 
         private Duration muteEvade = Duration.ofDays(15);
 
+        private AdminActionType thresholdAction = AdminActionType.ban;
+
         private int starboardLowerStarBarrier = 3;
 
         private Duration activeUserKeepCountingPeriod = Duration.ofDays(21);
@@ -178,6 +181,14 @@ public class Settings{
 
         public void setMuteEvade(Duration muteEvade){
             this.muteEvade = muteEvade;
+        }
+
+        public AdminActionType getThresholdAction(){
+            return thresholdAction;
+        }
+
+        public void setThresholdAction(AdminActionType thresholdAction){
+            this.thresholdAction = thresholdAction;
         }
 
         public Duration getActiveUserKeepCountingPeriod(){

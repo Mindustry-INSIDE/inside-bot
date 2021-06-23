@@ -1,6 +1,7 @@
 package inside.data.entity;
 
 import discord4j.common.util.Snowflake;
+import discord4j.discordjson.Id;
 import inside.data.entity.base.GuildEntity;
 import org.hibernate.annotations.Type;
 import org.joda.time.Duration;
@@ -26,13 +27,16 @@ public class AdminConfig extends GuildEntity{
     @Column(name = "max_warn_count")
     private long maxWarnCount;
 
+    @Column(name = "threshold_action")
+    @Enumerated(EnumType.STRING)
+    private AdminActionType thresholdAction;
+
     @Column(name = "mute_role_id")
     private String muteRoleId;
 
-    /* lazy initializing */
     @Type(type = "json")
     @Column(name = "admin_role_ids", columnDefinition = "json")
-    private Set<String> adminRoleIds;
+    private Set<Id> adminRoleIds;
 
     public Duration warnExpireDelay(){
         return warnExpireDelay;
@@ -77,9 +81,18 @@ public class AdminConfig extends GuildEntity{
     }
 
     public void adminRoleIds(Set<Snowflake> adminRoleIDs){
-        this.adminRoleIds = Objects.requireNonNull(adminRoleIDs, "adminRoleIds").stream()
-                .map(Snowflake::asString)
+        Objects.requireNonNull(adminRoleIDs, "adminRoleIDs");
+        this.adminRoleIds = adminRoleIDs.stream()
+                .map(id -> Id.of(id.asLong()))
                 .collect(Collectors.toSet());
+    }
+
+    public AdminActionType thresholdAction(){
+        return thresholdAction;
+    }
+
+    public void thresholdAction(AdminActionType thresholdAction){
+        this.thresholdAction = Objects.requireNonNull(thresholdAction, "thresholdAction");
     }
 
     @Override
@@ -88,6 +101,7 @@ public class AdminConfig extends GuildEntity{
                 "warnExpireDelay=" + warnExpireDelay +
                 ", muteBaseDelay=" + muteBaseDelay +
                 ", maxWarnCount=" + maxWarnCount +
+                ", thresholdAction=" + thresholdAction +
                 ", muteRoleId='" + muteRoleId + '\'' +
                 ", adminRoleIds=" + adminRoleIds +
                 "} " + super.toString();

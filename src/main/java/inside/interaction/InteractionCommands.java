@@ -10,7 +10,7 @@ import discord4j.rest.util.*;
 import inside.Settings;
 import inside.audit.*;
 import inside.command.Commands;
-import inside.data.entity.EmojiDispenser;
+import inside.data.entity.*;
 import inside.data.service.AdminService;
 import inside.service.MessageService;
 import inside.util.*;
@@ -333,8 +333,28 @@ public class InteractionCommands{
                     .zipWith(entityRetriever.getAdminConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createAdminConfig(guildId)))
                     .flatMap(function((group, adminConfig) -> {
-                        Mono<Void> warningsCommand = Mono.justOrEmpty(group.getOption("warnings")
-                                .flatMap(command -> command.getOption("value")))
+                        Mono<Void> warnThresholdActionCommand = Mono.justOrEmpty(group.getOption("threshold-action")
+                                .flatMap(opt -> opt.getOption("value"))
+                                .flatMap(ApplicationCommandInteractionOption::getValue)
+                                .map(ApplicationCommandInteractionOptionValue::asString))
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.threshold-action.current",
+                                        String.format("%s (`%s`)", messageService.getEnum(env.context(), adminConfig.thresholdAction()),
+                                                adminConfig.thresholdAction())).then(Mono.empty()))
+                                .flatMap(str -> {
+                                    AdminActionType action = Try.ofCallable(() ->
+                                            AdminActionType.valueOf(str)).toOptional().orElse(null);
+                                    Objects.requireNonNull(action, "action"); // impossible
+                                    adminConfig.thresholdAction(action);
+
+                                    return messageService.text(env.event(), "command.settings.threshold-action.update",
+                                            String.format("%s (`%s`)", messageService.getEnum(env.context(), adminConfig.thresholdAction()),
+                                                    adminConfig.thresholdAction()))
+                                            .and(entityRetriever.save(adminConfig));
+                                });
+
+                        Mono<Void> warningsCommand = Mono.justOrEmpty(group.getOption("warnings"))
+                                .switchIfEmpty(warnThresholdActionCommand.then(Mono.empty()))
+                                .flatMap(command -> Mono.justOrEmpty(command.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.warnings.current",
                                         adminConfig.maxWarnCount()).then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
@@ -664,7 +684,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(timezoneCommand.then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.locale.current",
-                                        guildConfig.locale()).then(Mono.empty()))
+                                        guildConfig.locale().getDisplayName()).then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asString))
                                 .flatMap(str -> {
@@ -1050,6 +1070,28 @@ public class InteractionCommands{
                                             .name("value")
                                             .description("Duration")
                                             .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .build())
+                                    .build())
+                            .addOption(ApplicationCommandOptionData.builder()
+                                    .name("threshold-action")
+                                    .description("Configure warn threshold action")
+                                    .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
+                                    .addOption(ApplicationCommandOptionData.builder()
+                                            .name("value")
+                                            .description("Action type")
+                                            .type(ApplicationCommandOptionType.STRING.getValue())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("ban")
+                                                    .value("ban")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("kick")
+                                                    .value("kick")
+                                                    .build())
+                                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                                    .name("mute")
+                                                    .value("mute")
+                                                    .build())
                                             .build())
                                     .build())
                             .addOption(ApplicationCommandOptionData.builder()
