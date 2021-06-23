@@ -1019,6 +1019,8 @@ public class Commands{
                     .switchIfEmpty(messageService.err(env, "command.disabled.mute").then(Mono.never()))
                     .flatMap(ignored -> Mono.justOrEmpty(targetId)).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
                     .filterWhen(member -> BooleanUtils.not(adminService.isMuted(member)))
                     .switchIfEmpty(messageService.err(env, "command.admin.mute.already-muted").then(Mono.never()))
                     .filterWhen(member -> Mono.zip(adminService.isAdmin(member), adminService.isOwner(author))
@@ -1093,7 +1095,7 @@ public class Commands{
             };
 
             Mono<Void> history = reply.flatMapMany(channel -> channel.getMessagesBefore(env.getMessage().getId())
-                    .limitRequest(number)
+                    .take(number, true)
                     .sort(Comparator.comparing(Message::getId))
                     .filter(message -> message.getTimestamp().isAfter(limit))
                     .flatMap(message -> message.getAuthorAsMember()
@@ -1144,6 +1146,8 @@ public class Commands{
 
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
                     .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
@@ -1217,6 +1221,8 @@ public class Commands{
 
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
                     .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.empty()))
@@ -1270,9 +1276,11 @@ public class Commands{
                     .flatMap(userId -> env.getClient().getMemberById(guildId, userId))
                     .switchIfEmpty(referencedUser)
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.empty()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
                     .zipWhen(member -> adminService.warnings(member)
                             .switchIfEmpty(messageService.text(env, "command.admin.warnings.empty").then(Mono.never()))
-                            .limitRequest(21).index().collect(collector))
+                            .take(21, true).index().collect(collector))
                     .flatMap(function((target, embed) -> messageService.info(env, spec -> spec.from(embed)
                             .setTitle(messageService.format(env.context(), "command.admin.warnings.title", target.getDisplayName())))));
         }
@@ -1300,6 +1308,8 @@ public class Commands{
 
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
                     .filterWhen(target -> adminService.isOwner(author).map(owner -> !target.equals(author) || owner))
                     .switchIfEmpty(messageService.err(env, "command.admin.unwarn.permission-denied").then(Mono.empty()))
                     .flatMap(target -> adminService.warnings(target).count().flatMap(count -> {
@@ -1371,7 +1381,7 @@ public class Commands{
             }
 
             BiFunction<Message, Integer, Mono<Message>> reactions = (message, integer) -> Flux.fromArray(emojis)
-                    .limitRequest(integer)
+                    .take(integer, true)
                     .flatMap(message::addReaction)
                     .then(Mono.just(message));
 

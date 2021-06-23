@@ -1315,7 +1315,7 @@ public class InteractionCommands{
 
             Mono<Void> history = reply.flatMapMany(channel -> channel.getLastMessage()
                     .flatMapMany(message -> channel.getMessagesBefore(message.getId()))
-                    .limitRequest(number)
+                    .take(number, true)
                     .sort(Comparator.comparing(Message::getId))
                     .filter(message -> message.getTimestamp().isAfter(limit))
                     .flatMap(message -> message.getAuthorAsMember()
