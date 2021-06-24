@@ -194,7 +194,7 @@ public class InteractionCommands{
                                                 return messageService.text(env.event(), "command.settings.removed",
                                                         formatCollection(list, DiscordUtil::getEmojiString));
                                             });
-                                }))).and(entityRetriever.save(starboardConfig));
+                                }).and(entityRetriever.save(starboardConfig))));
 
                         Mono<Void> lowerStarBarrierCommand = Mono.justOrEmpty(group.getOption("lower-star-barrier"))
                                 .switchIfEmpty(emojisCommand.then(Mono.empty()))
@@ -432,7 +432,7 @@ public class InteractionCommands{
                                         return messageService.text(env.event(), "command.settings.removed",
                                                 formatCollection(removed, DiscordUtil::getRoleMention));
                                     }));
-                                }))).and(entityRetriever.save(adminConfig));
+                                }).and(entityRetriever.save(adminConfig))));
 
                         Mono<Void> warnDelayCommand = Mono.justOrEmpty(group.getOption("warn-delay"))
                                 .switchIfEmpty(adminRolesCommand.then(Mono.empty()))
@@ -505,10 +505,21 @@ public class InteractionCommands{
                                         .flatMap(ApplicationCommandInteractionOption::getValue))
                                         .map(ApplicationCommandInteractionOptionValue::asString)
                                         .filter(str -> !str.equals("help"))
-                                        .switchIfEmpty(messageService.text(env.event(), "command.settings.actions.all", formatCollection(
-                                                EnumSet.allOf(AuditActionType.class),
-                                                type -> messageService.getEnum(env.context(), type)))
-                                                .then(Mono.empty()))
+                                        .switchIfEmpty(Mono.defer(() -> {
+                                            StringBuilder builder = new StringBuilder();
+                                            var types = AuditActionType.values();
+                                            for(int i = 0; i < types.length; i++){
+                                                builder.append(messageService.getEnum(env.context(), types[i]));
+                                                if(i + 1 != types.length){
+                                                    builder.append(", ");
+                                                }
+                                                if(i % 3 == 0){
+                                                    builder.append("\n");
+                                                }
+                                            }
+
+                                            return messageService.text(env.event(), "command.settings.actions.all", builder);
+                                        }).then(Mono.empty()))
                                         .zipWith(Mono.justOrEmpty(opt.getOption("value"))
                                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.actions.current",
                                                         formatCollection(auditConfig.types(), type ->
@@ -554,14 +565,14 @@ public class InteractionCommands{
                                     }
 
                                     if(add){
-                                        String formatted = formatCollection(flags,
-                                                type -> messageService.getEnum(env.context(), type));
+                                        String formatted = formatCollection(flags, type ->
+                                                messageService.getEnum(env.context(), type));
 
                                         return messageService.text(env.event(), "command.settings.added", formatted);
                                     }
                                     return messageService.text(env.event(), "command.settings.removed",
                                             String.join(", ", removed));
-                                }))).and(entityRetriever.save(auditConfig));
+                                }).and(entityRetriever.save(auditConfig))));
 
                         return Mono.justOrEmpty(group.getOption("enable"))
                                 .switchIfEmpty(actionsCommand.then(Mono.empty()))
@@ -746,7 +757,7 @@ public class InteractionCommands{
                                     }
                                     return messageService.text(env.event(), "command.settings.removed",
                                             String.join(", ", removed));
-                                }))).and(entityRetriever.save(guildConfig));
+                                }).and(entityRetriever.save(guildConfig))));
 
                     }));
         }
@@ -780,11 +791,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add prefix(s)")
+                                                    .name("Add prefix(s). For multiple additions, separate the values with a comma")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove prefix(s)")
+                                                    .name("Remove prefix(s). For multiple deletions, separate the values with a comma")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -891,7 +902,7 @@ public class InteractionCommands{
                                     .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
                                     .addOption(ApplicationCommandOptionData.builder()
                                             .name("value")
-                                            .description("Minimal message count")
+                                            .description("Minimal message count for reward activity")
                                             .type(ApplicationCommandOptionType.INTEGER.getValue())
                                             .build())
                                     .build())
@@ -944,11 +955,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add emoji(s)")
+                                                    .name("Add emoji(s). For multiple additions, separate the values with a comma")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove emoji(s)")
+                                                    .name("Remove emoji(s). For multiple deletions, separate the values with a comma")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -1011,11 +1022,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add audit action type(s)")
+                                                    .name("Add audit action type(s). For multiple additions, separate the values with a comma")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove audit action type(s)")
+                                                    .name("Remove audit action type(s). For multiple deletions, separate the values with a comma")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -1110,11 +1121,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add admin role(s)")
+                                                    .name("Add admin role(s). For multiple additions, separate the values with a comma")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove admin role(s)")
+                                                    .name("Remove admin role(s). For multiple deletions, separate the values with a comma")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()

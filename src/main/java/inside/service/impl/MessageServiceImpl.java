@@ -116,6 +116,7 @@ public class MessageServiceImpl implements MessageService{
                     if(ctx.<Boolean>getOrEmpty(KEY_REPLY).isPresent()){
                         spec.setMessageReference(environment.getMessage().getId());
                     }
+
                     spec.setAllowedMentions(AllowedMentions.suppressAll());
                     spec.setEmbed(embed.andThen(after -> after.setColor(settings.getDefaults().getNormalColor())));
                 }))
@@ -193,26 +194,22 @@ public class MessageServiceImpl implements MessageService{
     @Override
     public String encrypt(String text, Snowflake messageId, Snowflake channelId){
         if(settings.getDiscord().isEncryptMessages()){
-            return encrypt0(text, messageId.asString(), channelId.asString());
+            String password = messageId.asString();
+            String salt = channelId.asString();
+            AesEncryptor coder = new AesEncryptor(password, salt);
+            return coder.encrypt(text);
         }
         return text;
-    }
-
-    private String encrypt0(String text, String password, String salt){
-        AesEncryptor coder = new AesEncryptor(password, salt);
-        return coder.encrypt(text);
     }
 
     @Override
     public String decrypt(String text, Snowflake messageId, Snowflake channelId){
         if(settings.getDiscord().isEncryptMessages()){
-            return decrypt0(text, messageId.asString(), channelId.asString());
+            String password = messageId.asString();
+            String salt = channelId.asString();
+            AesEncryptor coder = new AesEncryptor(password, salt);
+            return coder.decrypt(text);
         }
         return text;
-    }
-
-    private String decrypt0(String text, String password, String salt){
-        AesEncryptor coder = new AesEncryptor(password, salt);
-        return coder.decrypt(text);
     }
 }

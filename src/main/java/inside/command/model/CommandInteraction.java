@@ -9,8 +9,8 @@ public class CommandInteraction{
     private final List<CommandOption> options;
 
     public CommandInteraction(String commandName, List<CommandOption> options){
-        this.commandName = commandName;
-        this.options = options;
+        this.commandName = Objects.requireNonNull(commandName, "commandName");
+        this.options = Objects.requireNonNull(options, "options");
     }
 
     public String getCommandName(){
@@ -26,6 +26,7 @@ public class CommandInteraction{
     }
 
     public Optional<CommandOption> getOption(String name){
+        Objects.requireNonNull(name, "name");
         return options.stream()
                 .filter(option -> option.getName().equals(name))
                 .findFirst();

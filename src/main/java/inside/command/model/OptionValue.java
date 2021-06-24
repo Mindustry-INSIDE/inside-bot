@@ -5,11 +5,13 @@ import inside.util.*;
 import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
+import java.util.Objects;
+
 public class OptionValue{
     private final String value;
 
     public OptionValue(String value){
-        this.value = value;
+        this.value = Objects.requireNonNull(value, "value");
     }
 
     public String asString(){

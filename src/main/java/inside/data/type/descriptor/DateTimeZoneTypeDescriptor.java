@@ -18,8 +18,8 @@ public class DateTimeZoneTypeDescriptor extends AbstractTypeDescriptor<DateTimeZ
         return DateTimeZone.forID(string);
     }
 
-    @SuppressWarnings("unchecked")
     @Override
+    @SuppressWarnings("unchecked")
     public <X> X unwrap(@Nullable DateTimeZone value, Class<X> type, WrapperOptions options){
         if(value == null){
             return null;

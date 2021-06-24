@@ -12,7 +12,7 @@ public class CommandOption{
     private final String value;
 
     public CommandOption(CommandParam param, @Nullable String value){
-        this.param = param;
+        this.param = Objects.requireNonNull(param, "param");
         this.value = value;
     }
 

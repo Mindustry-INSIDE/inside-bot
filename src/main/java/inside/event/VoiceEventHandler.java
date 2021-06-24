@@ -28,6 +28,7 @@ public class VoiceEventHandler extends ReactiveEventAdapter{
     @Override
     public Publisher<?> onVoiceStateUpdate(VoiceStateUpdateEvent event){
         Snowflake guildId = event.getCurrent().getGuildId();
+
         Mono<Context> initContext = entityRetriever.getGuildConfigById(guildId)
                 .switchIfEmpty(entityRetriever.createGuildConfig(guildId))
                 .map(guildConfig -> Context.of(KEY_LOCALE, guildConfig.locale(),
@@ -37,6 +38,7 @@ public class VoiceEventHandler extends ReactiveEventAdapter{
             Mono<GuildChannel> old = Mono.justOrEmpty(event.getOld())
                     .flatMap(VoiceState::getChannel)
                     .cast(GuildChannel.class);
+
             return initContext.flatMap(context -> Mono.zip(old, event.getCurrent().getUser(), event.getCurrent().getChannel())
                     .flatMap(function((oldChannel, user, currentChannel) -> auditService.log(guildId, VOICE_MOVE)
                             .withAttribute(Attribute.OLD_CHANNEL, AuditActionBuilder.getReference(oldChannel))

@@ -621,7 +621,7 @@ public class Commands{
         }
     }
 
-    @DiscordCommand(key = {"1337", "leet"}, params = "command.1337.params", description = "command.1337.description")
+    @DiscordCommand(key = {"leet", "1337"}, params = "command.1337.params", description = "command.1337.description")
     public static class LeetSpeakCommand extends Command{
         public static final Map<String, String> rusLeetSpeak;
         public static final Map<String, String> engLeetSpeak;
@@ -1353,7 +1353,6 @@ public class Commands{
             Mono<MessageChannel> channel = env.getReplyChannel();
             Member author = env.getAuthorAsMember();
 
-            // sudo poll title a
             String text = interaction.getOption("poll text")
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)

@@ -1,12 +1,13 @@
 package inside.data.type;
 
-import inside.data.type.descriptor.*;
+import inside.data.type.descriptor.JodaDurationTypeDescriptor;
 import org.hibernate.dialect.Dialect;
 import org.hibernate.type.*;
 import org.hibernate.type.descriptor.sql.VarcharTypeDescriptor;
-import org.joda.time.*;
+import org.joda.time.Duration;
 
 public class JodaDurationType extends AbstractSingleColumnStandardBasicType<Duration> implements LiteralType<Duration>{
+
     public static final JodaDurationType instance = new JodaDurationType();
 
     public JodaDurationType(){
