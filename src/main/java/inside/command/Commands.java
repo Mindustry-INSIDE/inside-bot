@@ -111,7 +111,7 @@ public class Commands{
                     .map(OptionValue::asString)
                     .map(String::toLowerCase);
 
-            Collector<CommandInfo, StringBuilder, String> categoryCollector = Collector.of(StringBuilder::new,
+            Collector<CommandInfo, StringBuilder, StringBuilder> categoryCollector = Collector.of(StringBuilder::new,
                     (builder, info) -> {
                         builder.append("**");
                         builder.append(info.text()[0]);
@@ -131,8 +131,7 @@ public class Commands{
                         builder.append(messageService.get(env.context(), info.description()));
                         builder.append("\n");
                     },
-                    StringBuilder::append,
-                    StringBuilder::toString);
+                    StringBuilder::append);
 
             Mono<Void> categories = Flux.fromIterable(categoriesWithCommands.get().entrySet())
                     .distinct(Map.Entry::getKey)
@@ -169,10 +168,12 @@ public class Commands{
                     .map(commandHolder.getCommandInfoMap()::get)
                     .sort((o1, o2) -> Arrays.compare(o1.text(), o2.text()))
                     .collect(categoryCollector)
+                    .map(builder -> builder.append(messageService.get(env.context(), "command.help.disclaimer.user"))
+                            .append("\n").append(messageService.get(env.context(), "command.help.disclaimer.help")))
                     .flatMap(str -> messageService.info(env, spec -> spec.setTitle(messageService.get(env.context(),
                             categoriesWithCommands.get().get(category.orElseThrow(AssertionError::new)).get(0).getClass()
                                     .getSuperclass().getCanonicalName()))
-                            .setDescription(str)));
+                            .setDescription(str.toString())));
         }
     }
 
@@ -1127,11 +1128,11 @@ public class Commands{
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member author = env.getAuthorAsMember();
 
-            Optional<Snowflake> targetId = interaction.getOption("@user")
+            Optional<Snowflake> targetId = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asSnowflake);
 
-            String reason = interaction.getOption("reason")
+            String reason = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
                     .map(String::trim)
@@ -1187,11 +1188,11 @@ public class Commands{
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member author = env.getAuthorAsMember();
 
-            Optional<Snowflake> targetId = interaction.getOption("@user")
+            Optional<Snowflake> targetId = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asSnowflake);
 
-            Optional<String> days = interaction.getOption("delete days")
+            Optional<String> days = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString);
 
@@ -1206,7 +1207,7 @@ public class Commands{
                         formatter.print(Days.SEVEN));
             }
 
-            String reason = interaction.getOption("reason")
+            String reason = interaction.getOption(2)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
                     .map(String::trim)
