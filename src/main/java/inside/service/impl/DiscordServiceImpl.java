@@ -39,6 +39,8 @@ public class DiscordServiceImpl implements DiscordService{
     @Autowired(required = false)
     private List<InteractionCommand> commands;
 
+    private final Map<String, InteractionCommand> commandMap = new LinkedHashMap<>();
+
     @Autowired(required = false)
     private ReactiveEventAdapter[] adapters;
 
@@ -73,25 +75,27 @@ public class DiscordServiceImpl implements DiscordService{
                         Intent.DIRECT_MESSAGES
                 ))
                 .login()
-                .block();
+                .blockOptional()
+                .orElseThrow(IllegalStateException::new);
 
-        Objects.requireNonNull(gateway, "impossible"); // for ide
-
-        long applicationId = Objects.requireNonNull(gateway.rest().getApplicationId().block(), "impossible");
+        long applicationId = gateway.rest().getApplicationId().blockOptional().orElse(0L);
         gateway.rest().getApplicationService()
                 .bulkOverwriteGlobalApplicationCommand(applicationId, commands.stream()
-                        .map(InteractionCommand::getRequest)
+                        .map(cmd -> {
+                            var req = cmd.getRequest();
+                            commandMap.put(req.name(), cmd);
+                            return req;
+                        })
                         .collect(Collectors.toList()))
                 .subscribe();
 
         gateway.on(ReactiveEventAdapter.from(adapters)).subscribe();
     }
 
+    // TODO: replace to lazy variant
     @Override
     public Mono<Void> handle(InteractionCommandEnvironment env){
-        return Mono.justOrEmpty(commands.stream()
-                .filter(cmd -> cmd.getRequest().name().equals(env.event().getCommandName()))
-                .findFirst())
+        return Mono.justOrEmpty(commandMap.get(env.event().getCommandName()))
                 .filterWhen(cmd -> cmd.filter(env))
                 .flatMap(cmd -> cmd.execute(env));
     }
