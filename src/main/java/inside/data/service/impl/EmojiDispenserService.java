@@ -24,6 +24,10 @@ public class EmojiDispenserService extends BaseEntityService<LongLongTuple2, Emo
         return repository.findByMessageIdAndRoleId(messageId, roleId);
     }
 
+    public Mono<Long> countAllByGuildId(long guildId){
+        return Mono.fromSupplier(() -> repository.countAllByGuildId(guildId));
+    }
+
     public Flux<EmojiDispenser> getAllByMessageId(long messageId){
         return Flux.defer(() -> Flux.fromIterable(repository.findAllByMessageId(messageId)));
     }

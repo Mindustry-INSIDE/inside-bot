@@ -246,6 +246,12 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
+    public Mono<Long> getEmojiDispenserCountInGuild(Snowflake guildId){
+        Objects.requireNonNull(guildId, "guildId");
+        return storeHolder.getEmojiDispenserService().countAllByGuildId(guildId.asLong());
+    }
+
+    @Override
     public Mono<Void> save(EmojiDispenser emojiDispenser){
         Objects.requireNonNull(emojiDispenser, "emojiDispenser");
         return storeHolder.getEmojiDispenserService().save(emojiDispenser);

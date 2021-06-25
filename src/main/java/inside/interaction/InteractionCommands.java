@@ -541,12 +541,8 @@ public class InteractionCommands{
                                     boolean add = choice.equals("add");
 
                                     Set<String> removed = new HashSet<>();
-                                    if(enums.equalsIgnoreCase("all")){
-                                        if(add){
-                                            flags.addAll(all.stream().map(Tuple2::getT1).collect(Collectors.toSet()));
-                                        }else{
-                                            flags.clear();
-                                        }
+                                    if(enums.equalsIgnoreCase("all") && add){
+                                        flags.addAll(all.stream().map(Tuple2::getT1).collect(Collectors.toSet()));
                                     }else{
                                         String[] text = enums.split("(\\s+)?,(\\s+)?");
                                         for(String s : text){
@@ -621,7 +617,8 @@ public class InteractionCommands{
                                         return entityRetriever.getAllEmojiDispenserInGuild(guildId)
                                                 .map(formatEmojiDispenser)
                                                 .collect(Collectors.joining())
-                                                .flatMap(str -> messageService.text(env.event(), "command.settings.reaction-roles.current", str));
+                                                .flatMap(str -> messageService.text(env.event(),
+                                                        "command.settings.reaction-roles.current", str));
                                     }
 
                                     Mono<Snowflake> preparedRoleId = Mono.justOrEmpty(role)
@@ -649,8 +646,8 @@ public class InteractionCommands{
                                                         .next());
 
                                         return Mono.zip(preparedMessageId, fetchEmoji, preparedRoleId)
-                                                .filterWhen(ignored -> entityRetriever.getAllEmojiDispenserInGuild(guildId)
-                                                        .count().map(l -> l < 20))
+                                                .filterWhen(ignored -> entityRetriever.getEmojiDispenserCountInGuild(guildId)
+                                                        .map(l -> l < 20))
                                                 .switchIfEmpty(messageService.text(env.event(),
                                                         "command.settings.reaction-roles.limit").then(Mono.empty()))
                                                 .flatMap(function((id, emoji, roleId) -> entityRetriever.createEmojiDispenser(guildId, id, roleId, emoji)
@@ -660,6 +657,8 @@ public class InteractionCommands{
 
                                     return Mono.zip(preparedMessageId, preparedRoleId)
                                             .flatMap(function(entityRetriever::getEmojiDispenserById))
+                                            .switchIfEmpty(messageService.text(env.event(),
+                                                    "command.settings.reaction-roles.not-found").then(Mono.empty()))
                                             .flatMap(emojiDispenser -> entityRetriever.delete(emojiDispenser)
                                                     .thenReturn(emojiDispenser))
                                             .flatMap(emojiDispenser -> messageService.text(env.event(), "command.settings.removed",

@@ -92,6 +92,8 @@ public interface EntityRetriever{
 
     Flux<EmojiDispenser> getAllEmojiDispenserInGuild(Snowflake guildId);
 
+    Mono<Long> getEmojiDispenserCountInGuild(Snowflake guildId);
+
     Mono<Void> save(EmojiDispenser emojiDispenser);
 
     Mono<Void> deleteEmojiDispenserById(Snowflake messageId, Snowflake roleId);

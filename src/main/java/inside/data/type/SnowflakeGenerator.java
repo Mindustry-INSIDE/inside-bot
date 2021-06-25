@@ -1,7 +1,6 @@
 package inside.data.type;
 
-import discord4j.common.util.Snowflake;
-import inside.util.Strings;
+import inside.util.*;
 import org.hibernate.*;
 import org.hibernate.engine.spi.SharedSessionContractImplementor;
 import org.hibernate.id.*;
@@ -12,15 +11,21 @@ import java.io.Serializable;
 import java.util.Properties;
 
 public final class SnowflakeGenerator implements IdentifierGenerator, Configurable{
-    public long timestamp;
+    public static final long INSIDE_BOT_EPOCH = 1598384634000L;
+
+    private SnowflakeIdGenerator idGenerator;
 
     @Override
     public void configure(Type type, Properties params, ServiceRegistry serviceRegistry) throws MappingException{
-        timestamp = Strings.parseLong(params.getProperty("timestamp"), Snowflake.DISCORD_EPOCH);
+        long epoch = Strings.parseLong(params.getProperty("epoch"), INSIDE_BOT_EPOCH);
+        long workerId = Strings.parseLong(params.getProperty("workerId"), 0);
+        long processId = Strings.parseLong(params.getProperty("processId"), 0);
+
+        idGenerator = new SnowflakeIdGenerator(epoch, workerId, processId);
     }
 
     @Override
     public Serializable generate(SharedSessionContractImplementor session, Object obj) throws HibernateException{
-        return System.currentTimeMillis() - timestamp << 22;
+        return idGenerator.nextId();
     }
 }

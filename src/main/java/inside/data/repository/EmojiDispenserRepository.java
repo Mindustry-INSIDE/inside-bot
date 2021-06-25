@@ -14,4 +14,6 @@ public interface EmojiDispenserRepository extends GuildRepository<EmojiDispenser
     List<EmojiDispenser> findAllByMessageId(long messageId);
 
     List<EmojiDispenser> getAllByGuildId(long guildId);
+
+    long countAllByGuildId(long guildId);
 }
