@@ -247,7 +247,7 @@ public class Commands{
             boolean encode = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .map(str -> str.matches("(?i)enc(ode)?"))
+                    .map(str -> str.matches("^(?i)enc(ode)?$"))
                     .orElse(false);
 
             AtomicBoolean attachmentMode = new AtomicBoolean(false);
