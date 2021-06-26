@@ -28,12 +28,12 @@ public abstract class AuditActionBuilder{
 
     public static NamedReference getReference(Member member){
         Objects.requireNonNull(member, "member");
-        return new NamedReference(member.getId(), member.getUsername());
+        return new NamedReference(member.getId(), member.getUsername(), member.getDiscriminator());
     }
 
     public static NamedReference getReference(User user){
         Objects.requireNonNull(user, "user");
-        return new NamedReference(user.getId(), user.getUsername());
+        return new NamedReference(user.getId(), user.getUsername(), user.getDiscriminator());
     }
 
     public static NamedReference getReference(LocalMember member){

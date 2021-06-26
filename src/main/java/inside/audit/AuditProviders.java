@@ -31,7 +31,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(action.user().name(), null, url);
+            embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.message.edit.description",
                     action.guildId().asString(),
                     action.channel().id(),
@@ -65,7 +65,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(target.name(), null, url);
+            embed.setAuthor(formatName(target), null, url);
 
             if(oldContent.length() > 0){
                 embed.addField(messageService.get(context, "audit.message.deleted-content.title"),
@@ -212,7 +212,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(action.user().name(), null, url);
+            embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.member.role-add.title",
                     DiscordUtil.getRoleMention(roleId), getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
@@ -229,7 +229,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(action.user().name(), null, url);
+            embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.member.role-remove.title",
                     DiscordUtil.getRoleMention(roleId), getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
@@ -246,7 +246,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(action.user().name(), null, url);
+            embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.member.update-avatar.title",
                     getUserReference(context, action.user())));
             embed.setThumbnail(oldUrl);

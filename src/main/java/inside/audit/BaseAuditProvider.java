@@ -68,11 +68,20 @@ public abstract class BaseAuditProvider implements AuditProvider{
     }
 
     protected String getShortReference(ContextView context, NamedReference reference){
-        return messageService.format(context, "audit.reference.short", reference.name());
+        return messageService.format(context, "audit.reference.short", formatName(reference));
+    }
+
+    protected String formatName(NamedReference reference){
+        String name = reference.name();
+        String discriminator = reference.discriminator();
+        if(discriminator != null){
+            return String.format("%s#%s", name, discriminator);
+        }
+        return name;
     }
 
     private String getReferenceContent(ContextView context, NamedReference reference, boolean channel){
-        return messageService.format(context, "audit.reference", reference.name(),
+        return messageService.format(context, "audit.reference", formatName(reference),
                 (channel ? "<#" : "<@") + reference.id() + ">");
     }
 

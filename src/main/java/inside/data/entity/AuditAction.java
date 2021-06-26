@@ -27,14 +27,16 @@ public class AuditAction extends GuildEntity{
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "id", column = @Column(name = "source_user_id", length = 21)),
-            @AttributeOverride(name = "name", column = @Column(name = "source_user_name"))
+            @AttributeOverride(name = "name", column = @Column(name = "source_user_name")),
+            @AttributeOverride(name = "discriminator", column = @Column(name = "source_user_discriminator"))
     })
     private NamedReference user;
 
     @Embedded
     @AttributeOverrides({
             @AttributeOverride(name = "id", column = @Column(name = "target_user_id", length = 21)),
-            @AttributeOverride(name = "name", column = @Column(name = "target_user_name"))
+            @AttributeOverride(name = "name", column = @Column(name = "target_user_name")),
+            @AttributeOverride(name = "discriminator", column = @Column(name = "target_user_discriminator"))
     })
     private NamedReference target;
 

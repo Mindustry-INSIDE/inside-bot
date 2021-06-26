@@ -17,7 +17,8 @@ public class Base64Coder{
     }
 
     public static String encodeString(String s, boolean useUrlsafeEncoding){
-        return new String(encode(s.getBytes(StandardCharsets.UTF_8), useUrlsafeEncoding ? urlsafeMap.encodingMap : regularMap.encodingMap));
+        return new String(encode(s.getBytes(StandardCharsets.UTF_8),
+                useUrlsafeEncoding ? urlsafeMap.encodingMap : regularMap.encodingMap));
     }
     public static String encodeLines(byte[] in){
         return encodeLines(in, 0, in.length, 76, System.lineSeparator(), regularMap.encodingMap);
