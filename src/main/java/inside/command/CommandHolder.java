@@ -41,7 +41,7 @@ public final class CommandHolder{
                 Preconditions.requireState(s.matches("^[\\S-]{1,32}$"), "Incorrect command alias '" + s + "' pattern!");
 
                 for(String s1 : commandInfo0.text()){
-                    Preconditions.requireState(!s1.equals(s), "Duplicate command alias '" + s + "' in '" +
+                    Preconditions.requireState(!s1.equals(s), () -> "Duplicate command alias '" + s + "' in '" +
                             command.getClass().getCanonicalName() + "' and '" + command0.getClass().getCanonicalName() + "'!");
                 }
             }

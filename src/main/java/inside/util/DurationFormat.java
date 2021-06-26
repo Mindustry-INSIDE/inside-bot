@@ -173,22 +173,22 @@ public class DurationFormat{
         }
 
         @Override
-        public int countFieldsToPrint(Duration duration, int stopAt, @Nullable Locale locale){
+        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
             return getPrinter(locale).countFieldsToPrint(duration, stopAt, locale);
         }
 
         @Override
-        public int calculatePrintedLength(Duration duration, @Nullable Locale locale){
+        public int calculatePrintedLength(Duration duration, Locale locale){
             return getPrinter(locale).calculatePrintedLength(duration, locale);
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration duration, @Nullable Locale locale){
+        public void printTo(StringBuffer buf, Duration duration, Locale locale){
             getPrinter(locale).printTo(buf, duration, locale);
         }
 
         @Override
-        public void printTo(Writer out, Duration duration, @Nullable Locale locale) throws IOException{
+        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
             getPrinter(locale).printTo(out, duration, locale);
         }
 

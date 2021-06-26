@@ -38,17 +38,14 @@ public class DurationFormatter{
     }
 
     public void printTo(StringBuffer buf, Duration duration){
-        Objects.requireNonNull(duration, "duration");
         printer.printTo(buf, duration, locale);
     }
 
     public void printTo(Writer out, Duration duration) throws IOException{
-        Objects.requireNonNull(duration, "duration");
         printer.printTo(out, duration, locale);
     }
 
     public String print(Duration duration){
-        Objects.requireNonNull(duration, "duration");
         StringBuffer buf = new StringBuffer(printer.calculatePrintedLength(duration, locale));
         printer.printTo(buf, duration, locale);
         return buf.toString();

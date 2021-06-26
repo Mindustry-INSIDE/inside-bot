@@ -64,7 +64,7 @@ public class DurationFormatBuilder{
     public void clear(){
         minPrintedDigits = 1;
         printZeroSetting = PRINT_ZERO_RARELY_LAST;
-        maxParsedDigits = 10;
+        maxParsedDigits = 2;
         rejectSignedValues = false;
         prefix = null;
         if(printers == null){
@@ -396,30 +396,30 @@ public class DurationFormatBuilder{
     }
 
     static class SimpleAffix extends IgnorableAffix{
-        private final String iText;
+        private final String text;
 
         SimpleAffix(String text){
-            iText = text;
+            this.text = Objects.requireNonNull(text, "text");
         }
 
         @Override
         public int calculatePrintedLength(int value){
-            return iText.length();
+            return text.length();
         }
 
         @Override
         public void printTo(StringBuffer buf, int value){
-            buf.append(iText);
+            buf.append(text);
         }
 
         @Override
         public void printTo(Writer out, int value) throws IOException{
-            out.write(iText);
+            out.write(text);
         }
 
         @Override
         public int parse(String periodStr, int position){
-            String text = iText;
+            String text = this.text;
             int textLength = text.length();
             if(periodStr.regionMatches(true, position, text, 0, textLength)){
                 if(!matchesOtherAffix(textLength, periodStr, position)){
@@ -431,7 +431,7 @@ public class DurationFormatBuilder{
 
         @Override
         public int scan(String periodStr, final int position){
-            String text = iText;
+            String text = this.text;
             int textLength = text.length();
             int sourceLength = periodStr.length();
             search:
@@ -467,38 +467,38 @@ public class DurationFormatBuilder{
 
         @Override
         public String[] getAffixes(){
-            return new String[]{iText};
+            return new String[]{text};
         }
     }
 
     static class PluralAffix extends IgnorableAffix{
-        private final String iSingularText;
-        private final String iPluralText;
+        private final String singularText;
+        private final String pluralText;
 
         PluralAffix(String singularText, String pluralText){
-            iSingularText = singularText;
-            iPluralText = pluralText;
+            this.singularText = Objects.requireNonNull(singularText, "singularText");
+            this.pluralText = Objects.requireNonNull(pluralText, "pluralText");
         }
 
         @Override
         public int calculatePrintedLength(int value){
-            return (value == 1 ? iSingularText : iPluralText).length();
+            return (value == 1 ? singularText : pluralText).length();
         }
 
         @Override
         public void printTo(StringBuffer buf, int value){
-            buf.append(value == 1 ? iSingularText : iPluralText);
+            buf.append(value == 1 ? singularText : pluralText);
         }
 
         @Override
         public void printTo(Writer out, int value) throws IOException{
-            out.write(value == 1 ? iSingularText : iPluralText);
+            out.write(value == 1 ? singularText : pluralText);
         }
 
         @Override
         public int parse(String periodStr, int position){
-            String text1 = iPluralText;
-            String text2 = iSingularText;
+            String text1 = pluralText;
+            String text2 = singularText;
 
             if(text1.length() < text2.length()){
                 // Swap in order to match longer one first.
@@ -523,8 +523,8 @@ public class DurationFormatBuilder{
 
         @Override
         public int scan(String periodStr, int position){
-            String text1 = iPluralText;
-            String text2 = iSingularText;
+            String text1 = pluralText;
+            String text2 = singularText;
 
             if(text1.length() < text2.length()){
                 // Swap in order to match longer one first.
@@ -554,63 +554,63 @@ public class DurationFormatBuilder{
 
         @Override
         public String[] getAffixes(){
-            return new String[]{iSingularText, iPluralText};
+            return new String[]{singularText, pluralText};
         }
     }
 
     static class RegExAffix extends IgnorableAffix{
         private static final Comparator<String> LENGTH_DESC_COMPARATOR = (o1, o2) -> o2.length() - o1.length();
 
-        private final String[] iSuffixes;
-        private final Pattern[] iPatterns;
+        private final String[] suffixes;
+        private final Pattern[] patterns;
 
         // The parse method has to iterate over the suffixes from the longest one to the shortest one
         // Otherwise it might consume not enough characters.
-        private final String[] iSuffixesSortedDescByLength;
+        private final String[] suffixesSortedDescByLength;
 
         RegExAffix(String[] regExes, String[] texts){
-            iSuffixes = texts.clone();
-            iPatterns = new Pattern[regExes.length];
+            suffixes = texts.clone();
+            patterns = new Pattern[regExes.length];
             for(int i = 0; i < regExes.length; i++){
                 Pattern pattern = PATTERNS.get(regExes[i]);
                 if(pattern == null){
                     pattern = Pattern.compile(regExes[i]);
                     PATTERNS.putIfAbsent(regExes[i], pattern);
                 }
-                iPatterns[i] = pattern;
+                patterns[i] = pattern;
             }
-            iSuffixesSortedDescByLength = iSuffixes.clone();
-            Arrays.sort(iSuffixesSortedDescByLength, LENGTH_DESC_COMPARATOR);
+            suffixesSortedDescByLength = suffixes.clone();
+            Arrays.sort(suffixesSortedDescByLength, LENGTH_DESC_COMPARATOR);
         }
 
         private int selectSuffixIndex(int value){
             String valueString = String.valueOf(value);
-            for(int i = 0; i < iPatterns.length; i++){
-                if(iPatterns[i].matcher(valueString).matches()){
+            for(int i = 0; i < patterns.length; i++){
+                if(patterns[i].matcher(valueString).matches()){
                     return i;
                 }
             }
-            return iPatterns.length - 1;
+            return patterns.length - 1;
         }
 
         @Override
         public int calculatePrintedLength(int value){
-            return iSuffixes[selectSuffixIndex(value)].length();
+            return suffixes[selectSuffixIndex(value)].length();
         }
 
         @Override
         public void printTo(StringBuffer buf, int value){
-            buf.append(iSuffixes[selectSuffixIndex(value)]);
+            buf.append(suffixes[selectSuffixIndex(value)]);
         }
 
         @Override
         public void printTo(Writer out, int value) throws IOException{
-            out.write(iSuffixes[selectSuffixIndex(value)]);
+            out.write(suffixes[selectSuffixIndex(value)]);
         }
 
         @Override
         public int parse(String periodStr, int position){
-            for(String text : iSuffixesSortedDescByLength){
+            for(String text : suffixesSortedDescByLength){
                 if(periodStr.regionMatches(true, position, text, 0, text.length())){
                     if(!matchesOtherAffix(text.length(), periodStr, position)){
                         return position + text.length();
@@ -624,7 +624,7 @@ public class DurationFormatBuilder{
         public int scan(String periodStr, int position){
             int sourceLength = periodStr.length();
             for(int pos = position; pos < sourceLength; pos++){
-                for(String text : iSuffixesSortedDescByLength){
+                for(String text : suffixesSortedDescByLength){
                     if(periodStr.regionMatches(true, pos, text, 0, text.length())){
                         if(!matchesOtherAffix(text.length(), periodStr, pos)){
                             return pos;
@@ -637,53 +637,53 @@ public class DurationFormatBuilder{
 
         @Override
         public String[] getAffixes(){
-            return iSuffixes.clone();
+            return suffixes.clone();
         }
     }
 
     static class CompositeAffix extends IgnorableAffix{
-        private final PeriodFieldAffix iLeft;
-        private final PeriodFieldAffix iRight;
-        private final String[] iLeftRightCombinations;
+        private final PeriodFieldAffix left;
+        private final PeriodFieldAffix right;
+        private final String[] leftRightCombinations;
 
         CompositeAffix(PeriodFieldAffix left, PeriodFieldAffix right){
-            iLeft = left;
-            iRight = right;
+            this.left = Objects.requireNonNull(left, "left");
+            this.right = Objects.requireNonNull(right, "right");
 
             // We need to construct all possible combinations of left and right.
             // We are doing it once in constructor so that getAffixes() is quicker.
             Set<String> result = new HashSet<>();
-            for(String leftText : iLeft.getAffixes()){
-                for(String rightText : iRight.getAffixes()){
+            for(String leftText : this.left.getAffixes()){
+                for(String rightText : this.right.getAffixes()){
                     result.add(leftText + rightText);
                 }
             }
-            iLeftRightCombinations = result.toArray(new String[0]);
+            leftRightCombinations = result.toArray(new String[0]);
         }
 
         @Override
         public int calculatePrintedLength(int value){
-            return iLeft.calculatePrintedLength(value)
-                    + iRight.calculatePrintedLength(value);
+            return left.calculatePrintedLength(value)
+                    + right.calculatePrintedLength(value);
         }
 
         @Override
         public void printTo(StringBuffer buf, int value){
-            iLeft.printTo(buf, value);
-            iRight.printTo(buf, value);
+            left.printTo(buf, value);
+            right.printTo(buf, value);
         }
 
         @Override
         public void printTo(Writer out, int value) throws IOException{
-            iLeft.printTo(out, value);
-            iRight.printTo(out, value);
+            left.printTo(out, value);
+            right.printTo(out, value);
         }
 
         @Override
         public int parse(String periodStr, int position){
-            int pos = iLeft.parse(periodStr, position);
+            int pos = left.parse(periodStr, position);
             if(pos >= 0){
-                pos = iRight.parse(periodStr, pos);
+                pos = right.parse(periodStr, pos);
                 if(pos >= 0 && matchesOtherAffix(parse(periodStr, pos) - pos, periodStr, position)){
                     return ~position;
                 }
@@ -693,10 +693,10 @@ public class DurationFormatBuilder{
 
         @Override
         public int scan(String periodStr, final int position){
-            int leftPosition = iLeft.scan(periodStr, position);
+            int leftPosition = left.scan(periodStr, position);
             if(leftPosition >= 0){
-                int rightPosition = iRight.scan(periodStr, iLeft.parse(periodStr, leftPosition));
-                if(!(rightPosition >= 0 && matchesOtherAffix(iRight.parse(periodStr, rightPosition) - leftPosition, periodStr, position))){
+                int rightPosition = right.scan(periodStr, left.parse(periodStr, leftPosition));
+                if(!(rightPosition >= 0 && matchesOtherAffix(right.parse(periodStr, rightPosition) - leftPosition, periodStr, position))){
                     if(leftPosition > 0){
                         return leftPosition;
                     }
@@ -708,7 +708,7 @@ public class DurationFormatBuilder{
 
         @Override
         public String[] getAffixes(){
-            return iLeftRightCombinations.clone();
+            return leftRightCombinations.clone();
         }
     }
 
@@ -736,12 +736,14 @@ public class DurationFormatBuilder{
             this.maxParsedDigits = maxParsedDigits;
             this.rejectSignedValues = rejectSignedValues;
             this.fieldType = fieldType;
-            this.fieldFormatters = fieldFormatters;
+            this.fieldFormatters = Objects.requireNonNull(fieldFormatters, "fieldFormatters");
             this.prefix = prefix;
             this.suffix = suffix;
         }
 
         FieldFormatter(FieldFormatter field, PeriodFieldAffix suffix){
+            Objects.requireNonNull(field, "field");
+            Objects.requireNonNull(suffix, "suffix");
             minPrintedDigits = field.minPrintedDigits;
             printZeroSetting = field.printZeroSetting;
             maxParsedDigits = field.maxParsedDigits;
@@ -756,6 +758,7 @@ public class DurationFormatBuilder{
         }
 
         public void finish(FieldFormatter[] fieldFormatters){
+            Objects.requireNonNull(fieldFormatters, "fieldFormatters");
             // find all other affixes that are in use
             Set<PeriodFieldAffix> prefixesToIgnore = new HashSet<>();
             Set<PeriodFieldAffix> suffixesToIgnore = new HashSet<>();
@@ -776,19 +779,19 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int countFieldsToPrint(Duration period, int stopAt, Locale locale){
+        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
             if(stopAt <= 0){
                 return 0;
             }
-            if(printZeroSetting == PRINT_ZERO_ALWAYS || getFieldValue(period) != Long.MAX_VALUE){
+            if(printZeroSetting == PRINT_ZERO_ALWAYS || getFieldValue(duration) != Long.MAX_VALUE){
                 return 1;
             }
             return 0;
         }
 
         @Override
-        public int calculatePrintedLength(Duration period, Locale locale){
-            long valueLong = getFieldValue(period);
+        public int calculatePrintedLength(Duration duration, Locale locale){
+            long valueLong = getFieldValue(duration);
             if(valueLong == Long.MAX_VALUE){
                 return 0;
             }
@@ -807,8 +810,8 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration period, Locale locale){
-            long valueLong = getFieldValue(period);
+        public void printTo(StringBuffer buf, Duration duration, Locale locale){
+            long valueLong = getFieldValue(duration);
             if(valueLong == Long.MAX_VALUE){
                 return;
             }
@@ -829,8 +832,8 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(Writer out, Duration period, Locale locale) throws IOException{
-            long valueLong = getFieldValue(period);
+        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
+            long valueLong = getFieldValue(duration);
             if(valueLong == Long.MAX_VALUE){
                 return;
             }
@@ -857,19 +860,19 @@ public class DurationFormatBuilder{
                 default:
                     return Long.MAX_VALUE;
                 case DAYS:
-                    value = duration.toDays();
+                    value = duration.toDaysPart();
                     break;
                 case HOURS:
-                    value = duration.toHours();
+                    value = duration.toHoursPart();
                     break;
                 case MINUTES:
-                    value = duration.toMinutes();
+                    value = duration.toMinutesPart();
                     break;
                 case SECONDS:
-                    value = duration.toSeconds();
+                    value = duration.toSecondsPart();
                     break;
                 case MILLIS:
-                    value = duration.toMillis();
+                    value = duration.toMillisPart();
                     break;
             }
 
@@ -916,30 +919,30 @@ public class DurationFormatBuilder{
     static class Literal implements DurationPrinter{
         static final Literal EMPTY = new Literal("");
 
-        private final String iText;
+        private final String text;
 
         Literal(String text){
-            iText = text;
+            this.text = Objects.requireNonNull(text, "text");
         }
 
         @Override
-        public int countFieldsToPrint(Duration period, int stopAt, Locale locale){
+        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
             return 0;
         }
 
         @Override
-        public int calculatePrintedLength(Duration period, Locale locale){
-            return iText.length();
+        public int calculatePrintedLength(Duration duration, Locale locale){
+            return text.length();
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration period, Locale locale){
-            buf.append(iText);
+        public void printTo(StringBuffer buf, Duration duration, Locale locale){
+            buf.append(text);
         }
 
         @Override
-        public void printTo(Writer out, Duration period, Locale locale) throws IOException{
-            out.write(iText);
+        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
+            out.write(text);
         }
     }
 
@@ -956,9 +959,9 @@ public class DurationFormatBuilder{
         Separator(String text, String finalText,
                   DurationPrinter beforePrinter,
                   boolean useBefore, boolean useAfter){
-            this.text = text;
-            this.finalText = finalText;
-            this.beforePrinter = beforePrinter;
+            this.text = Objects.requireNonNull(text, "text");
+            this.finalText = Objects.requireNonNull(finalText, "finalText");
+            this.beforePrinter = Objects.requireNonNull(beforePrinter, "beforePrinter");
             this.useBefore = useBefore;
             this.useAfter = useAfter;
         }
@@ -973,17 +976,17 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int calculatePrintedLength(Duration period, Locale locale){
+        public int calculatePrintedLength(Duration duration, Locale locale){
             DurationPrinter before = beforePrinter;
             DurationPrinter after = afterPrinter;
 
-            int sum = before.calculatePrintedLength(period, locale)
-                    + after.calculatePrintedLength(period, locale);
+            int sum = before.calculatePrintedLength(duration, locale)
+                    + after.calculatePrintedLength(duration, locale);
 
             if(useBefore){
-                if(before.countFieldsToPrint(period, 1, locale) > 0){
+                if(before.countFieldsToPrint(duration, 1, locale) > 0){
                     if(useAfter){
-                        int afterCount = after.countFieldsToPrint(period, 2, locale);
+                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
                         if(afterCount > 0){
                             sum += (afterCount > 1 ? text : finalText).length();
                         }
@@ -991,7 +994,7 @@ public class DurationFormatBuilder{
                         sum += text.length();
                     }
                 }
-            }else if(useAfter && after.countFieldsToPrint(period, 1, locale) > 0){
+            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
                 sum += text.length();
             }
 
@@ -999,15 +1002,15 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration period, Locale locale){
+        public void printTo(StringBuffer buf, Duration duration, Locale locale){
             DurationPrinter before = beforePrinter;
             DurationPrinter after = afterPrinter;
 
-            before.printTo(buf, period, locale);
+            before.printTo(buf, duration, locale);
             if(useBefore){
-                if(before.countFieldsToPrint(period, 1, locale) > 0){
+                if(before.countFieldsToPrint(duration, 1, locale) > 0){
                     if(useAfter){
-                        int afterCount = after.countFieldsToPrint(period, 2, locale);
+                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
                         if(afterCount > 0){
                             buf.append(afterCount > 1 ? text : finalText);
                         }
@@ -1015,22 +1018,22 @@ public class DurationFormatBuilder{
                         buf.append(text);
                     }
                 }
-            }else if(useAfter && after.countFieldsToPrint(period, 1, locale) > 0){
+            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
                 buf.append(text);
             }
-            after.printTo(buf, period, locale);
+            after.printTo(buf, duration, locale);
         }
 
         @Override
-        public void printTo(Writer out, Duration period, Locale locale) throws IOException{
+        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
             DurationPrinter before = beforePrinter;
             DurationPrinter after = afterPrinter;
 
-            before.printTo(out, period, locale);
+            before.printTo(out, duration, locale);
             if(useBefore){
-                if(before.countFieldsToPrint(period, 1, locale) > 0){
+                if(before.countFieldsToPrint(duration, 1, locale) > 0){
                     if(useAfter){
-                        int afterCount = after.countFieldsToPrint(period, 2, locale);
+                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
                         if(afterCount > 0){
                             out.write(afterCount > 1 ? text : finalText);
                         }
@@ -1038,10 +1041,10 @@ public class DurationFormatBuilder{
                         out.write(text);
                     }
                 }
-            }else if(useAfter && after.countFieldsToPrint(period, 1, locale) > 0){
+            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
                 out.write(text);
             }
-            after.printTo(out, period, locale);
+            after.printTo(out, duration, locale);
         }
 
         Separator finish(DurationPrinter afterPrinter){
