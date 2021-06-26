@@ -147,7 +147,8 @@ public class MessageServiceImpl implements MessageService{
 
     @Override
     public Mono<Void> text(InteractionCreateEvent event, String text, Object... args){
-        return Mono.deferContextual(ctx -> event.reply(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
+        return Mono.deferContextual(ctx -> event.reply(spec -> spec.setEphemeral(ctx.<Boolean>getOrEmpty(KEY_EPHEMERAL).orElse(false))
+                .setAllowedMentions(AllowedMentions.suppressAll())
                 .setContent(text.isBlank() ? placeholder : format(ctx, text, args))));
     }
 

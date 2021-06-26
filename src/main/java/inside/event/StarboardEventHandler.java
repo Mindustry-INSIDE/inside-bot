@@ -19,14 +19,13 @@ import reactor.math.MathFlux;
 import reactor.util.context.Context;
 import reactor.util.function.Tuples;
 
-import java.time.Instant;
+import java.time.*;
 import java.time.format.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import static inside.util.ContextUtil.*;
-import static reactor.bool.BooleanUtils.not;
 import static reactor.function.TupleUtils.function;
 
 @Component
@@ -82,26 +81,30 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                             .flatMap(guild -> guild.getChannelById(channelId))
                             .cast(GuildMessageChannel.class);
 
-                    Mono<Message> targetMessage = starboard.zipWith(starboardChannel)
-                            .flatMap(function((board, channel) -> channel.getMessageById(board.targetMessageId())));
-
-                    Mono<Void> updateOld = event.getMessage().zipWith(targetMessage)
-                            .flatMap(function((source, target) -> target.edit(spec -> spec.setEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
-                                    .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
-                                    .setContent(messageService.format(context, "starboard.format",
-                                            formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
-                                            l, DiscordUtil.getChannelMention(source.getChannelId()))))))
-                            .then();
-
-                    Mono<Starboard> findIfAbsent = Mono.zip(starboardChannel, event.getMessage(), author)
-                            .flatMap(function((channel, source, user) -> channel.getMessagesBefore(Snowflake.of(Instant.now()))
+                    Mono<Message> findIfAbsent = Mono.zip(starboardChannel, event.getMessage(), author)
+                            .flatMap(function((channel, source, user) -> channel.getLastMessageId()
+                            .map(channel::getMessagesBefore).orElse(Flux.empty())
+                            .take(Duration.ofSeconds(3))
                             .filter(m -> m.getEmbeds().size() == 1 && m.getEmbeds().get(0).getFields().size() >= 1)
                             .filter(m -> m.getEmbeds().get(0).getFields().get(0)
                                     .getValue().endsWith(source.getId().asString() + ")")) // match md link
                             .next()
-                            .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId()))));
+                            .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
+                                    .thenReturn(target))))
+                            .timeout(Duration.ofSeconds(5));
 
-                    Mono<Starboard> createNew = Mono.zip(starboardChannel, event.getMessage(), author).flatMap(function((channel, source, user) ->
+                    Mono<Message> targetMessage = starboard.zipWith(starboardChannel)
+                            .flatMap(function((board, channel) -> channel.getMessageById(board.targetMessageId())))
+                            .switchIfEmpty(findIfAbsent);
+
+                    Mono<Message> updateOld = event.getMessage().zipWith(targetMessage)
+                            .flatMap(function((source, target) -> target.edit(spec -> spec.setEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
+                                    .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
+                                    .setContent(messageService.format(context, "starboard.format",
+                                            formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
+                                            l, DiscordUtil.getChannelMention(source.getChannelId()))))));
+
+                    Mono<Message> createNew = Mono.zip(starboardChannel, event.getMessage(), author).flatMap(function((channel, source, user) ->
                             channel.createMessage(spec -> spec.setContent(messageService.format(
                                     context, "starboard.format", formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                     l, DiscordUtil.getChannelMention(source.getChannelId())))
@@ -123,8 +126,8 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                         if(files.size() != 0){
                                             String key = files.size() == 1 ? "starboard.attachment" : "starboard.attachments";
                                             embed.addField(messageService.get(context, key), files.stream()
-                                                    .map(att -> String.format("[%s](%s)", att.getFilename(), att.getUrl()))
-                                                    .collect(Collectors.joining("\n")), false);
+                                                    .map(att -> String.format("[%s](%s)%n", att.getFilename(), att.getUrl()))
+                                                    .collect(Collectors.joining()), false);
                                         }
 
                                         source.getAttachments().stream()
@@ -132,9 +135,9 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                                 .map(Attachment::getUrl)
                                                 .findFirst().ifPresent(embed::setImage);
                                     }))
-                                    .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId()))));
+                                    .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId()).thenReturn(target))));
 
-                    return not(starboard.hasElement()).flatMap(bool -> bool ? findIfAbsent.switchIfEmpty(createNew) : updateOld);
+                    return updateOld.switchIfEmpty(createNew);
                 }).contextWrite(context)));
     }
 
@@ -177,23 +180,28 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                     Mono<GuildMessageChannel> starboardChannel = event.getGuild().flatMap(guild -> guild.getChannelById(channelId))
                             .cast(GuildMessageChannel.class);
 
-                    Mono<Starboard> findIfAbsent = Mono.zip(starboardChannel, event.getMessage())
-                            .flatMap(function((channel, source) -> channel.getMessagesBefore(Snowflake.of(Instant.now()))
+                    Mono<Message> findIfAbsent = Mono.zip(starboardChannel, event.getMessage())
+                            .flatMap(function((channel, source) -> channel.getLastMessageId()
+                                    .map(channel::getMessagesBefore).orElse(Flux.empty())
+                            .take(Duration.ofSeconds(3))
                             .filter(m -> m.getEmbeds().size() == 1 && m.getEmbeds().get(0).getFields().size() >= 1)
                             .filter(m -> m.getEmbeds().get(0).getFields().get(0)
                                     .getValue().endsWith(source.getId().asString() + ")")) // match md link
                             .next()
-                            .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId()))));
+                            .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
+                                    .thenReturn(target))))
+                            .timeout(Duration.ofSeconds(5));
 
-                    Mono<Starboard> starboard = entityRetriever.getStarboardById(guildId, event.getMessageId())
+                    Mono<Starboard> starboard = entityRetriever.getStarboardById(guildId, event.getMessageId());
+
+                    Mono<Message> targetMessage = starboard.zipWith(starboardChannel)
+                            .flatMap(function((board, channel) -> channel.getMessageById(board.targetMessageId())))
                             .switchIfEmpty(findIfAbsent);
 
-                    return Mono.zip(starboard, starboardChannel)
-                            .zipWhen(tuple -> tuple.getT2().getMessageById(tuple.getT1().targetMessageId()),
-                                    (tuple, message) -> Tuples.of(tuple.getT1(), tuple.getT2(), message))
-                            .flatMap(function((board, channel, target) -> {
+                    return starboardChannel.zipWith(targetMessage)
+                            .flatMap(function((channel, target) -> {
                                 if(l < config.lowerStarBarrier()){
-                                    return target.delete().and(entityRetriever.delete(board));
+                                    return target.delete().and(entityRetriever.deleteStarboardById(guildId, event.getMessageId()));
                                 }
 
                                 Snowflake sourceChannelId = event.getChannelId();
