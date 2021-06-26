@@ -2,8 +2,9 @@ package inside.data.repository;
 
 import inside.data.entity.MessageInfo;
 import inside.data.repository.base.GuildRepository;
-import org.joda.time.DateTime;
 import org.springframework.stereotype.Repository;
+
+import java.time.LocalDateTime;
 
 @Repository
 public interface MessageInfoRepository extends GuildRepository<MessageInfo>{
@@ -12,5 +13,5 @@ public interface MessageInfoRepository extends GuildRepository<MessageInfo>{
 
     void deleteByMessageId(long messageId);
 
-    void deleteAllByTimestampBefore(DateTime timestamp);
+    void deleteAllByTimestampBefore(LocalDateTime timestamp);
 }

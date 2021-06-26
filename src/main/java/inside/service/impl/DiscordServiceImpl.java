@@ -92,7 +92,6 @@ public class DiscordServiceImpl implements DiscordService{
         gateway.on(ReactiveEventAdapter.from(adapters)).subscribe();
     }
 
-    // TODO: replace to lazy variant
     @Override
     public Mono<Void> handle(InteractionCommandEnvironment env){
         return Mono.justOrEmpty(commandMap.get(env.event().getCommandName()))
@@ -120,6 +119,7 @@ public class DiscordServiceImpl implements DiscordService{
         return gateway.getChannelById(channelId).ofType(TextChannel.class);
     }
 
+    // TODO: replace to lazy variant
     @Scheduled(cron = "0 */2 * * * *")
     private void activeUsers(){
         entityRetriever.getAllLocalMembers()

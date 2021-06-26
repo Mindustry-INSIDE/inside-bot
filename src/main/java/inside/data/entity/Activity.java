@@ -1,11 +1,11 @@
 package inside.data.entity;
 
 import inside.data.entity.base.GuildEntity;
-import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.Instant;
 import java.util.Objects;
 
 // directly not used
@@ -19,7 +19,7 @@ public class Activity extends GuildEntity{
     private int messageCount;
 
     @Column(name = "last_sent_message")
-    private DateTime lastSentMessage;
+    private Instant lastSentMessage;
 
     @Transient
     public void incrementMessageCount(){
@@ -35,11 +35,11 @@ public class Activity extends GuildEntity{
     }
 
     @Nullable
-    public DateTime lastSentMessage(){
+    public Instant lastSentMessage(){
         return lastSentMessage;
     }
 
-    public void lastSentMessage(DateTime lastSentMessage){
+    public void lastSentMessage(Instant lastSentMessage){
         this.lastSentMessage = Objects.requireNonNull(lastSentMessage, "lastSentMessage");
     }
 

@@ -10,7 +10,6 @@ import inside.data.entity.AdminConfig;
 import inside.data.service.*;
 import inside.service.MessageService;
 import inside.util.DiscordUtil;
-import org.joda.time.DateTime;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -62,7 +61,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
         Mono<?> muteEvade = Mono.deferContextual(ctx -> member.getGuild().flatMap(Guild::getOwner)
                 .filterWhen(ignored -> adminService.isMuted(member))
                 .flatMap(owner -> adminConfig.flatMap(config -> adminService.mute(owner, member,
-                        DateTime.now().plus(config.muteBaseDelay()),
+                        Instant.now().plus(config.muteBaseDelay()),
                         messageService.get(ctx, "audit.member.mute.evade"))
                         .thenReturn(owner)))
                 .switchIfEmpty(warn.then(Mono.empty())));

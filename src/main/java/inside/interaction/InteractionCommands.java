@@ -16,14 +16,13 @@ import inside.service.MessageService;
 import inside.util.*;
 import inside.util.func.BooleanFunction;
 import inside.util.io.ReusableByteInputStream;
-import org.joda.time.*;
-import org.joda.time.format.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.*;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.function.*;
 
-import java.time.Instant;
+import java.time.*;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.*;
@@ -100,8 +99,8 @@ public class InteractionCommands{
             BooleanFunction<String> formatBool = bool ->
                     messageService.get(env.context(), bool ? "command.settings.enabled" : "command.settings.disabled");
 
-            Function<Duration, String> formatDuration = duration -> PeriodFormat.wordBased(env.context().get(KEY_LOCALE))
-                    .print(duration.toPeriod());
+            Function<Duration, String> formatDuration = duration -> DurationFormat.wordBased(env.context().get(KEY_LOCALE))
+                    .print(duration);
 
             Mono<Void> handleStarboard = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
                     .getOption("starboard"))
@@ -259,18 +258,16 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asString)
-                                .switchIfEmpty(messageService.text(env.event(), "command.settings.keep-counting-period.current",
-                                        formatDuration.apply(activeUserConfig.keepCountingPeriod())).then(Mono.empty()))
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.keep-counting-duration.current",
+                                        formatDuration.apply(activeUserConfig.keepCountingDuration())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = Optional.ofNullable(MessageUtil.parseDuration(str))
-                                            .map(jduration -> Duration.millis(jduration.toMillis()))
-                                            .orElse(null);
+                                    Duration duration = MessageUtil.parseDuration(str);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
 
-                                    activeUserConfig.keepCountingPeriod(duration);
-                                    return messageService.text(env.event(), "command.settings.keep-counting-period.update",
+                                    activeUserConfig.keepCountingDuration(duration);
+                                    return messageService.text(env.event(), "command.settings.keep-counting-duration.update",
                                             formatDuration.apply(duration))
                                             .and(entityRetriever.save(activeUserConfig));
                                 });
@@ -442,9 +439,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.warn-delay.current",
                                         formatDuration.apply(adminConfig.warnExpireDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = Optional.ofNullable(MessageUtil.parseDuration(str))
-                                            .map(jduration -> Duration.millis(jduration.toMillis()))
-                                            .orElse(null);
+                                    Duration duration = MessageUtil.parseDuration(str);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
@@ -463,9 +458,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.base-delay.current",
                                         formatDuration.apply(adminConfig.muteBaseDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = Optional.ofNullable(MessageUtil.parseDuration(str))
-                                            .map(jduration -> Duration.millis(jduration.toMillis()))
-                                            .orElse(null);
+                                    Duration duration = MessageUtil.parseDuration(str);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
@@ -673,11 +666,9 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asString))
                                 .flatMap(str -> {
-                                    DateTimeZone timeZone = Try.ofCallable(() ->
-                                            DateTimeZone.forID(str)).orElse(null);
-
+                                    ZoneId timeZone = Try.ofCallable(() -> ZoneId.of(str)).orElse(null);
                                     if(timeZone == null){
-                                        String suggest = Strings.findClosest(DateTimeZone.getAvailableIDs(), str);
+                                        String suggest = Strings.findClosest(ZoneId.getAvailableZoneIds(), str);
 
                                         if(suggest != null){
                                             return messageService.err(env.event(), "command.settings.timezone.unknown.suggest", suggest);
@@ -1302,12 +1293,12 @@ public class InteractionCommands{
 
             StringBuffer result = new StringBuffer();
             Instant limit = Instant.now().minus(14, ChronoUnit.DAYS);
-            DateTimeFormatter formatter = DateTimeFormat.forPattern("MM-dd-yyyy HH:mm:ss")
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")
                     .withLocale(env.context().get(KEY_LOCALE))
                     .withZone(env.context().get(KEY_TIMEZONE));
 
             BiConsumer<Message, Member> appendInfo = (message, member) -> {
-                result.append("[").append(formatter.print(message.getTimestamp().toEpochMilli())).append("] ");
+                result.append("[").append(formatter.format(message.getTimestamp())).append("] ");
                 if(DiscordUtil.isBot(member)){
                     result.append("[BOT] ");
                 }

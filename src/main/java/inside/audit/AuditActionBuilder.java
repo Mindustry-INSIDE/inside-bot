@@ -5,12 +5,12 @@ import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.GuildChannel;
 import inside.data.entity.*;
 import inside.data.entity.base.NamedReference;
-import org.joda.time.DateTime;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 import reactor.util.function.*;
 
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.*;
 
 public abstract class AuditActionBuilder{
@@ -21,7 +21,7 @@ public abstract class AuditActionBuilder{
 
     protected AuditActionBuilder(Snowflake guildId, AuditActionType type){
         action = new AuditAction(guildId);
-        action.timestamp(DateTime.now());
+        action.timestamp(Instant.now());
         action.type(type);
         action.attributes(new HashMap<>(7));
     }

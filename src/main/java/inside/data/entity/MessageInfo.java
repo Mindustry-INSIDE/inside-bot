@@ -2,10 +2,10 @@ package inside.data.entity;
 
 import discord4j.common.util.Snowflake;
 import inside.data.entity.base.GuildEntity;
-import org.joda.time.DateTime;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.Instant;
 import java.util.Objects;
 
 @Entity
@@ -24,7 +24,7 @@ public class MessageInfo extends GuildEntity{
     private String content;
 
     @Column
-    private DateTime timestamp;
+    private Instant timestamp;
 
     public Snowflake messageId(){
         return Snowflake.of(messageId);
@@ -50,11 +50,11 @@ public class MessageInfo extends GuildEntity{
         this.content = Objects.requireNonNull(content, "content");
     }
 
-    public DateTime timestamp(){
+    public Instant timestamp(){
         return timestamp;
     }
 
-    public void timestamp(DateTime timestamp){
+    public void timestamp(Instant timestamp){
         this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     }
 

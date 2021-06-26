@@ -4,11 +4,11 @@ import discord4j.common.util.Snowflake;
 import discord4j.discordjson.Id;
 import inside.data.entity.base.GuildEntity;
 import org.hibernate.annotations.Type;
-import org.joda.time.Duration;
 import reactor.util.annotation.Nullable;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -38,6 +38,7 @@ public class AdminConfig extends GuildEntity{
     @Column(name = "admin_role_ids", columnDefinition = "json")
     private Set<Id> adminRoleIds;
 
+    @Nullable
     public Duration warnExpireDelay(){
         return warnExpireDelay;
     }
@@ -46,12 +47,11 @@ public class AdminConfig extends GuildEntity{
         this.warnExpireDelay = warnExpireDelay;
     }
 
-    @Nullable
     public Duration muteBaseDelay(){
         return muteBaseDelay;
     }
 
-    public void muteBaseDelay(@Nullable Duration muteBaseDelay){
+    public void muteBaseDelay(Duration muteBaseDelay){
         this.muteBaseDelay = muteBaseDelay;
     }
 

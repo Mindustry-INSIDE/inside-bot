@@ -2,10 +2,9 @@ package inside;
 
 import discord4j.rest.util.Color;
 import inside.data.entity.AdminActionType;
-import org.joda.time.DateTimeZone;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 
-import java.time.Duration;
+import java.time.*;
 import java.util.*;
 
 @ConfigurationProperties("insidebot")
@@ -107,7 +106,7 @@ public class Settings{
 
         private List<String> prefixes = Arrays.asList("#");
 
-        private DateTimeZone timeZone = DateTimeZone.forID("Etc/Greenwich");
+        private ZoneId timeZone = ZoneId.of("Etc/Greenwich");
 
         private Color normalColor = Color.of(0xc4f5b7);
 
@@ -123,7 +122,7 @@ public class Settings{
 
         private int starboardLowerStarBarrier = 3;
 
-        private Duration activeUserKeepCountingPeriod = Duration.ofDays(21);
+        private Duration activeUserKeepCountingDuration = Duration.ofDays(21);
 
         private int activeUserMessageBarrier = 75;
 
@@ -135,12 +134,12 @@ public class Settings{
             this.prefixes = prefixes;
         }
 
-        public DateTimeZone getTimeZone(){
+        public ZoneId getTimeZone(){
             return timeZone;
         }
 
         public void setTimeZone(String timeZone){
-            this.timeZone = DateTimeZone.forID(timeZone);
+            this.timeZone = ZoneId.of(timeZone);
         }
 
         public Color getNormalColor(){
@@ -191,12 +190,12 @@ public class Settings{
             this.thresholdAction = thresholdAction;
         }
 
-        public Duration getActiveUserKeepCountingPeriod(){
-            return activeUserKeepCountingPeriod;
+        public Duration getActiveUserKeepCountingDuration(){
+            return activeUserKeepCountingDuration;
         }
 
-        public void setActiveUserKeepCountingPeriod(Duration activeUserKeepCountingPeriod){
-            this.activeUserKeepCountingPeriod = activeUserKeepCountingPeriod;
+        public void setActiveUserKeepCountingDuration(Duration activeUserKeepCountingDuration){
+            this.activeUserKeepCountingDuration = activeUserKeepCountingDuration;
         }
 
         public int getActiveUserMessageBarrier(){

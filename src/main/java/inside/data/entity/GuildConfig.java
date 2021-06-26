@@ -2,10 +2,10 @@ package inside.data.entity;
 
 import inside.data.entity.base.GuildEntity;
 import org.hibernate.annotations.Type;
-import org.joda.time.DateTimeZone;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.ZoneId;
 import java.util.*;
 
 @Entity
@@ -22,7 +22,7 @@ public class GuildConfig extends GuildEntity{ // or ConfigEntity?
     private Locale locale;
 
     @Column(name = "time_zone")
-    private DateTimeZone timeZone;
+    private ZoneId timeZone;
 
     public static String formatPrefix(String prefix){
         Objects.requireNonNull(prefix, "prefix");
@@ -48,11 +48,11 @@ public class GuildConfig extends GuildEntity{ // or ConfigEntity?
         this.locale = Objects.requireNonNull(locale, "locale");
     }
 
-    public DateTimeZone timeZone(){
+    public ZoneId timeZone(){
         return timeZone;
     }
 
-    public void timeZone(DateTimeZone timeZone){
+    public void timeZone(ZoneId timeZone){
         this.timeZone = Objects.requireNonNull(timeZone, "timeZone");
     }
 

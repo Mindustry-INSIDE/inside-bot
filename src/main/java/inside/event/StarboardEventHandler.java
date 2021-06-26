@@ -11,8 +11,6 @@ import inside.data.entity.*;
 import inside.data.service.EntityRetriever;
 import inside.service.MessageService;
 import inside.util.*;
-import org.joda.time.DateTime;
-import org.joda.time.format.DateTimeFormat;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -21,7 +19,8 @@ import reactor.math.MathFlux;
 import reactor.util.context.Context;
 import reactor.util.function.Tuples;
 
-import java.time.Instant;
+import java.time.*;
+import java.time.format.*;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -108,10 +107,10 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                     l, DiscordUtil.getChannelMention(source.getChannelId())))
                                     .setAllowedMentions(AllowedMentions.suppressAll())
                                     .setEmbed(embed -> {
-                                        embed.setFooter(DateTimeFormat.longDateTime()
+                                        embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                                                 .withLocale(context.get(KEY_LOCALE))
                                                 .withZone(context.get(KEY_TIMEZONE))
-                                                .print(DateTime.now()), null);
+                                                .format(LocalDateTime.now()), null);
                                         embed.setAuthor(user.getUsername(), null, user.getAvatarUrl());
                                         embed.setDescription(source.getContent());
                                         embed.setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));

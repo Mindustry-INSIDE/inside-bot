@@ -5,12 +5,13 @@ import inside.Settings;
 import inside.data.entity.LocalMember;
 import inside.data.repository.LocalMemberRepository;
 import inside.data.service.BaseEntityService;
-import org.joda.time.DateTime;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
+
+import java.time.LocalDateTime;
 
 @Service
 public class LocalMemberService extends BaseEntityService<LongLongTuple2, LocalMember, LocalMemberRepository>{
@@ -35,6 +36,6 @@ public class LocalMemberService extends BaseEntityService<LongLongTuple2, LocalM
     @Transactional
     @Scheduled(cron = "0 0 0 * * *")
     protected void cleanUp(){
-        repository.deleteAllByActivityLastSentMessageBefore(DateTime.now().minus(settings.getAudit().getMemberKeep().toMillis()));
+        repository.deleteAllByActivityLastSentMessageBefore(LocalDateTime.now().minus(settings.getAudit().getMemberKeep()));
     }
 }

@@ -4,11 +4,11 @@ import discord4j.common.util.Snowflake;
 import inside.audit.*;
 import inside.data.entity.base.*;
 import org.hibernate.annotations.Type;
-import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.Instant;
 import java.util.*;
 
 @Entity
@@ -18,7 +18,7 @@ public class AuditAction extends GuildEntity{
     private static final long serialVersionUID = 165904719880729938L;
 
     @Column
-    private DateTime timestamp;
+    private Instant timestamp;
 
     @Column
     @Enumerated(EnumType.STRING)
@@ -55,11 +55,11 @@ public class AuditAction extends GuildEntity{
         this.guildId = Objects.requireNonNull(guildId, "guildId").asLong();
     }
 
-    public DateTime timestamp(){
+    public Instant timestamp(){
         return timestamp;
     }
 
-    public void timestamp(DateTime timestamp){
+    public void timestamp(Instant timestamp){
         this.timestamp = Objects.requireNonNull(timestamp, "timestamp");
     }
 

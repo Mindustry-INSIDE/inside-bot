@@ -9,7 +9,6 @@ import inside.data.repository.AdminActionRepository;
 import inside.data.service.*;
 import inside.scheduler.job.*;
 import inside.util.Try;
-import org.joda.time.DateTime;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.quartz.SchedulerFactoryBean;
@@ -18,7 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.*;
 import reactor.util.annotation.Nullable;
 
-import java.util.Set;
+import java.time.Instant;
+import java.util.*;
 
 import static inside.audit.Attribute.*;
 import static reactor.function.TupleUtils.function;
@@ -58,7 +58,7 @@ public class AdminServiceImpl implements AdminService{
 
     @Override
     @Transactional
-    public Mono<Void> mute(Member admin, Member target, DateTime end, @Nullable String reason){
+    public Mono<Void> mute(Member admin, Member target, Instant endTimestamp, @Nullable String reason){
         Mono<Void> saveAction = entityRetriever.getAndUpdateLocalMemberById(admin)
                 .zipWith(entityRetriever.getAndUpdateLocalMemberById(target))
                 .flatMap(function((adminLocalMember, targetLocalMember) -> Mono.fromRunnable(() -> repository.save(AdminAction.builder()
@@ -67,26 +67,26 @@ public class AdminServiceImpl implements AdminService{
                         .admin(adminLocalMember)
                         .target(targetLocalMember)
                         .reason(reason)
-                        .timestamp(DateTime.now())
-                        .endTimestamp(end)
+                        .timestamp(Instant.now())
+                        .endTimestamp(endTimestamp)
                         .build()))));
 
         Mono<Void> log = auditService.log(admin.getGuildId(), AuditActionType.MEMBER_MUTE)
                 .withUser(admin)
                 .withTargetUser(target)
                 .withAttribute(REASON, reason)
-                .withAttribute(DELAY, end.getMillis())
+                .withAttribute(DELAY, endTimestamp)
                 .save();
 
         Mono<Void> addRole = entityRetriever.getAdminConfigById(admin.getGuildId())
                 .flatMap(adminConfig -> Mono.justOrEmpty(adminConfig.muteRoleID()))
                 .flatMap(target::addRole);
 
-        Mono<Void> scheduleUnmute = Mono.fromRunnable(() -> Try.run(() ->
+        Mono<Void> scheduleUnmute = Mono.deferContextual(ctx -> Mono.fromRunnable(() -> Try.run(() ->
                 schedulerFactoryBean.getScheduler().scheduleJob(UnmuteJob.createDetails(target), TriggerBuilder.newTrigger()
-                        .startAt(end.toDate())
+                        .startAt(Date.from(endTimestamp))
                         .withSchedule(SimpleScheduleBuilder.simpleSchedule())
-                        .build())));
+                        .build()))));
 
         return Mono.when(saveAction, addRole, log, scheduleUnmute);
     }
@@ -133,11 +133,13 @@ public class AdminServiceImpl implements AdminService{
                         .admin(adminLocalMember)
                         .target(targetLocalMember)
                         .reason(reason)
-                        .timestamp(DateTime.now())
-                        .endTimestamp(DateTime.now().plus(adminConfig.warnExpireDelay()))
+                        .timestamp(Instant.now())
+                        .endTimestamp(Instant.now().plus(adminConfig.warnExpireDelay()))
                         .build())))
                 .map(adminAction -> Try.run(() -> schedulerFactoryBean.getScheduler().scheduleJob(UnwarnJob.createDetails(adminAction), TriggerBuilder.newTrigger()
-                        .startAt(adminAction.endTimestamp().orElseThrow(IllegalStateException::new).toDate())
+                        .startAt(adminAction.endTimestamp()
+                                .map(Date::from)
+                                .orElseThrow(IllegalStateException::new))
                         .withSchedule(SimpleScheduleBuilder.simpleSchedule())
                         .build())))
                 .then();

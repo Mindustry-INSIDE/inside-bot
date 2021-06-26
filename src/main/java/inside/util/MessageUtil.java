@@ -2,7 +2,6 @@ package inside.util;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Message;
-import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
 import java.time.*;
@@ -92,20 +91,19 @@ public abstract class MessageUtil{
     }
 
     @Nullable
-    public static DateTime parseTime(String message){
+    public static ZonedDateTime parseTime(String message){
         Matcher matcher = timeUnitPattern.matcher(message);
         if(!matcher.matches()){
             return null;
         }
 
-        return DateTime.now().plus(LocalDateTime.ofEpochSecond(0, 0, ZoneOffset.UTC)
+        return ZonedDateTime.now()
                 .plus(Strings.parseLong(matcher.group(2), 0), ChronoUnit.YEARS)
                 .plus(Strings.parseLong(matcher.group(5), 0), ChronoUnit.MONTHS)
                 .plus(Strings.parseLong(matcher.group(8), 0), ChronoUnit.WEEKS)
                 .plus(Strings.parseLong(matcher.group(11), 0), ChronoUnit.DAYS)
                 .plus(Strings.parseLong(matcher.group(14), 0), ChronoUnit.HOURS)
                 .plus(Strings.parseLong(matcher.group(17), 0), ChronoUnit.MINUTES)
-                .plus(Strings.parseLong(matcher.group(20), 0), ChronoUnit.SECONDS)
-                .toEpochSecond(ZoneOffset.UTC) * 1000);
+                .plus(Strings.parseLong(matcher.group(20), 0), ChronoUnit.SECONDS);
     }
 }

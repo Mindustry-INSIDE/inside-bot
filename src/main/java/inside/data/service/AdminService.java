@@ -3,9 +3,10 @@ package inside.data.service;
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Member;
 import inside.data.entity.*;
-import org.joda.time.DateTime;
 import reactor.core.publisher.*;
 import reactor.util.annotation.Nullable;
+
+import java.time.Instant;
 
 // action service
 public interface AdminService{
@@ -14,7 +15,7 @@ public interface AdminService{
 
     Flux<AdminAction> getAll(AdminActionType type);
 
-    Mono<Void> mute(Member admin, Member target, DateTime end, @Nullable String reason);
+    Mono<Void> mute(Member admin, Member target, Instant end, @Nullable String reason);
 
     Mono<Boolean> isMuted(Snowflake guildId, Snowflake targetId);
 

@@ -7,8 +7,10 @@ import discord4j.core.spec.*;
 import inside.data.entity.AuditAction;
 import inside.data.entity.base.NamedReference;
 import inside.util.*;
-import org.joda.time.format.*;
 import reactor.util.context.ContextView;
+
+import java.time.Instant;
+import java.time.format.*;
 
 import static inside.audit.Attribute.*;
 import static inside.util.ContextUtil.*;
@@ -175,7 +177,7 @@ public class AuditProviders{
     public static class MemberMuteAuditProvider extends BaseAuditProvider{
         @Override
         protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
-            Long delay = action.getAttribute(DELAY);
+            Instant delay = action.getAttribute(DELAY);
             String reason = action.getAttribute(REASON);
             NamedReference target = action.target();
             if(reason == null){
@@ -186,7 +188,7 @@ public class AuditProviders{
                 return;
             }
 
-            DateTimeFormatter formatter = DateTimeFormat.shortDateTime()
+            DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                     .withLocale(context.get(KEY_LOCALE))
                     .withZone(context.get(KEY_TIMEZONE));
 
@@ -194,7 +196,8 @@ public class AuditProviders{
             embed.addField(messageService.get(context, "audit.member.admin"),
                     getUserReference(context, action.user()), true);
             embed.addField(messageService.get(context, "audit.member.reason"), reason, true);
-            embed.addField(messageService.get(context, "audit.member.mute.delay"), formatter.print(delay), true);
+            embed.addField(messageService.get(context, "audit.member.mute.delay"),
+                    formatter.format(delay), true);
             addTimestamp(context, action, embed);
         }
     }

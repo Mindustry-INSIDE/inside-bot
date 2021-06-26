@@ -2,9 +2,9 @@ package inside.command.model;
 
 import discord4j.common.util.Snowflake;
 import inside.util.*;
-import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
+import java.time.ZonedDateTime;
 import java.util.Objects;
 
 public class OptionValue{
@@ -32,7 +32,7 @@ public class OptionValue{
     }
 
     @Nullable
-    public DateTime asDateTime(){
+    public ZonedDateTime asDateTime(){
         return Try.ofCallable(() -> MessageUtil.parseTime(value)).orElse(null);
     }
 

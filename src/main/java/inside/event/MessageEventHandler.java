@@ -15,7 +15,6 @@ import inside.data.service.EntityRetriever;
 import inside.service.MessageService;
 import inside.util.*;
 import inside.util.io.ReusableByteInputStream;
-import org.joda.time.DateTime;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -66,7 +65,7 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                 .switchIfEmpty(entityRetriever.createLocalMember(member));
 
         Mono<Void> updateActivity = localMember.flatMap(localMember0 -> {
-            localMember0.activity().lastSentMessage(new DateTime(message.getTimestamp().toEpochMilli()));
+            localMember0.activity().lastSentMessage(message.getTimestamp());
             localMember0.activity().incrementMessageCount();
             return entityRetriever.save(localMember0);
         });
@@ -121,7 +120,7 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                                 info.content(messageService.encrypt(event.getOld()
                                         .map(MessageUtil::effectiveContent)
                                         .orElse(""), message.getId(), message.getChannelId()));
-                                info.timestamp(new DateTime(event.getMessageId().getTimestamp().toEpochMilli()));
+                                info.timestamp(event.getMessageId().getTimestamp());
                                 return info;
                             }));
 

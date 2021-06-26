@@ -9,7 +9,6 @@ import inside.data.entity.*;
 import inside.data.service.*;
 import inside.service.MessageService;
 import inside.util.*;
-import org.joda.time.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
@@ -296,8 +295,8 @@ public class EntityRetrieverImpl implements EntityRetriever{
             AdminConfig adminConfig = new AdminConfig();
             adminConfig.guildId(guildId);
             adminConfig.maxWarnCount(settings.getDefaults().getMaxWarnings());
-            adminConfig.muteBaseDelay(Duration.millis(settings.getDefaults().getMuteEvade().toMillis())); // TODO: use joda or java.time?
-            adminConfig.warnExpireDelay(Duration.millis(settings.getDefaults().getWarnExpire().toMillis()));
+            adminConfig.muteBaseDelay(settings.getDefaults().getMuteEvade());
+            adminConfig.warnExpireDelay(settings.getDefaults().getWarnExpire());
             adminConfig.thresholdAction(settings.getDefaults().getThresholdAction());
             return save(adminConfig).thenReturn(adminConfig);
         });
@@ -336,7 +335,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
             messageInfo.messageId(message.getId());
             messageInfo.userId(message.getAuthor().map(User::getId).orElseThrow(IllegalStateException::new)); // only users, not webhooks
             messageInfo.guildId(message.getGuildId().orElseThrow(IllegalStateException::new)); // only guilds
-            messageInfo.timestamp(new DateTime(message.getTimestamp().toEpochMilli()));
+            messageInfo.timestamp(message.getTimestamp());
             messageInfo.content(messageService.encrypt(MessageUtil.effectiveContent(message), message.getId(), message.getChannelId()));
             return save(messageInfo).thenReturn(messageInfo);
         });
@@ -360,7 +359,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
         return Mono.defer(() -> {
             ActiveUserConfig activeUserConfig = new ActiveUserConfig();
             activeUserConfig.guildId(guildId);
-            activeUserConfig.keepCountingPeriod(Duration.millis(settings.getDefaults().getActiveUserKeepCountingPeriod().toMillis()));
+            activeUserConfig.keepCountingDuration(settings.getDefaults().getActiveUserKeepCountingDuration());
             activeUserConfig.messageBarrier(settings.getDefaults().getActiveUserMessageBarrier());
             return save(activeUserConfig).thenReturn(activeUserConfig);
         });

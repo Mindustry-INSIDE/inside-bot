@@ -26,8 +26,6 @@ import inside.util.*;
 import inside.util.codec.Base64Coder;
 import inside.util.io.ReusableByteInputStream;
 import inside.voice.*;
-import org.joda.time.*;
-import org.joda.time.format.*;
 import org.quartz.*;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -42,8 +40,8 @@ import reactor.util.function.Tuple2;
 import java.math.*;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.time.Instant;
+import java.time.*;
+import java.time.format.*;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.concurrent.ThreadLocalRandom;
@@ -863,11 +861,10 @@ public class Commands{
 
             boolean present = interaction.getOption(0).isPresent();
 
-            DateTimeZone timeZone = interaction.getOption(0)
+            ZoneId timeZone = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .flatMap(str -> Try.ofCallable(() ->
-                            DateTimeZone.forID(str)).toOptional())
+                    .flatMap(str -> Try.ofCallable(() -> ZoneId.of(str)).toOptional())
                     .orElse(null);
 
             String str =  interaction.getOption(0)
@@ -880,7 +877,7 @@ public class Commands{
                     .filterWhen(guildConfig -> adminService.isAdmin(member).map(bool -> bool && present))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(timeZone == null){
-                            String suggest = Strings.findClosest(DateTimeZone.getAvailableIDs(), str);
+                            String suggest = Strings.findClosest(ZoneId.getAvailableZoneIds(), str);
 
                             if(suggest != null){
                                 return messageService.err(env, "command.settings.timezone.unknown.suggest", suggest);
@@ -889,7 +886,8 @@ public class Commands{
                         }
 
                         guildConfig.timeZone(timeZone);
-                        return Mono.deferContextual(ctx -> messageService.text(env, "command.settings.timezone.update", ctx.<Locale>get(KEY_TIMEZONE)))
+                        return Mono.deferContextual(ctx -> messageService.text(env,
+                                "command.settings.timezone.update", ctx.<Locale>get(KEY_TIMEZONE)))
                                 .contextWrite(ctx -> ctx.put(KEY_TIMEZONE, timeZone))
                                 .and(entityRetriever.save(guildConfig));
                     }).thenReturn(guildConfig))
@@ -953,7 +951,7 @@ public class Commands{
 
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-            DateTime time = interaction.getOption(0)
+            ZonedDateTime time = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asDateTime)
                     .orElse(null);
@@ -972,7 +970,7 @@ public class Commands{
                     env.getMessage().getChannelId(), text);
 
             Trigger trigger = TriggerBuilder.newTrigger()
-                    .startAt(time.toDate())
+                    .startAt(Date.from(time.toInstant()))
                     .withSchedule(SimpleScheduleBuilder.simpleSchedule())
                     .build();
 
@@ -994,7 +992,7 @@ public class Commands{
 
             Snowflake guildId = author.getGuildId();
 
-            DateTime delay = interaction.getOption("delay")
+            ZonedDateTime delay = interaction.getOption("delay")
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asDateTime)
                     .orElse(null);
@@ -1031,7 +1029,7 @@ public class Commands{
                             return messageService.err(env, "common.string-limit", AuditLogEntry.MAX_REASON_LENGTH);
                         }
 
-                        return adminService.mute(author, member, delay, reason)
+                        return adminService.mute(author, member, delay.toInstant(), reason)
                                 .and(env.getMessage().addReaction(ok));
                     }));
         }
@@ -1067,12 +1065,12 @@ public class Commands{
 
             StringBuffer result = new StringBuffer();
             Instant limit = Instant.now().minus(14, ChronoUnit.DAYS);
-            DateTimeFormatter formatter = DateTimeFormat.forPattern("MM-dd-yyyy HH:mm:ss")
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("MM-dd-yyyy HH:mm:ss")
                     .withLocale(env.context().get(KEY_LOCALE))
                     .withZone(env.context().get(KEY_TIMEZONE));
 
             BiConsumer<Message, Member> appendInfo = (message, member) -> {
-                result.append("[").append(formatter.print(message.getTimestamp().toEpochMilli())).append("] ");
+                result.append("[").append(formatter.format(message.getTimestamp())).append("] ");
                 if(DiscordUtil.isBot(member)){
                     result.append("[BOT] ");
                 }
@@ -1169,7 +1167,7 @@ public class Commands{
                                         case kick -> author.kick();
                                         case mute -> author.getGuild().flatMap(Guild::getOwner)
                                                 .flatMap(owner -> adminService.mute(owner, author,
-                                                        DateTime.now().plus(adminConfig.muteBaseDelay()), null));
+                                                        Instant.now().plus(adminConfig.muteBaseDelay()), null));
                                         default -> Mono.empty();
                                     });
 
@@ -1202,9 +1200,9 @@ public class Commands{
 
             int deleteDays = days.map(Strings::parseInt).orElse(0);
             if(deleteDays > 7){
-                PeriodFormatter formatter = PeriodFormat.wordBased(env.context().get(KEY_LOCALE));
+                DurationFormatter formatter = DurationFormat.wordBased(env.context().get(KEY_LOCALE));
                 return messageService.err(env, "command.admin.softban.delay-limit",
-                        formatter.print(Days.SEVEN));
+                        formatter.print(Duration.ofDays(7)));
             }
 
             String reason = interaction.getOption(2)
@@ -1244,7 +1242,7 @@ public class Commands{
 
             Snowflake guildId = env.getAuthorAsMember().getGuildId();
 
-            DateTimeFormatter formatter = DateTimeFormat.shortDateTime()
+            DateTimeFormatter formatter = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT)
                     .withLocale(env.context().get(KEY_LOCALE))
                     .withZone(env.context().get(KEY_TIMEZONE));
 
@@ -1258,7 +1256,7 @@ public class Commands{
                                         .orElse(messageService.get(env.context(), "common.not-defined"))));
 
                         EmbedFieldData field = EmbedFieldData.builder()
-                                .name(String.format("%2s. %s", index + 1, formatter.print(warn.timestamp())))
+                                .name(String.format("%2s. %s", index + 1, formatter.format(warn.timestamp())))
                                 .value(value)
                                 .inline(true)
                                 .build();

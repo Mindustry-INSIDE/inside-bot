@@ -7,7 +7,6 @@ import inside.data.entity.*;
 import inside.data.entity.base.NamedReference;
 import inside.service.*;
 import inside.util.DiscordUtil;
-import org.joda.time.format.DateTimeFormat;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Mono;
 import reactor.function.TupleUtils;
@@ -15,6 +14,8 @@ import reactor.util.context.ContextView;
 import reactor.util.function.Tuple2;
 
 import java.io.InputStream;
+import java.time.ZoneId;
+import java.time.format.*;
 import java.util.List;
 
 import static inside.util.ContextUtil.*;
@@ -51,10 +52,11 @@ public abstract class BaseAuditProvider implements AuditProvider{
     }
 
     protected void addTimestamp(ContextView context, AuditAction action, EmbedCreateSpec embed){
-        embed.setFooter(DateTimeFormat.longDateTime()
+        ZoneId zoneId = context.get(KEY_TIMEZONE);
+        embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                 .withLocale(context.get(KEY_LOCALE))
-                .withZone(context.get(KEY_TIMEZONE))
-                .print(action.timestamp()), null);
+                .withZone(zoneId)
+                .format(action.timestamp()), null);
     }
 
     protected String getChannelReference(ContextView context, NamedReference reference){

@@ -4,6 +4,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.object.reaction.ReactionEmoji;
 import inside.data.entity.base.NamedReference;
 
+import java.time.Instant;
 import java.util.Objects;
 
 public final class Attribute<T>{
@@ -14,7 +15,7 @@ public final class Attribute<T>{
 
     public static final Attribute<String> REASON = new Attribute<>("reason");
 
-    public static final Attribute<Long> DELAY = new Attribute<>("delay");
+    public static final Attribute<Instant> DELAY = new Attribute<>("delay");
 
     public static final Attribute<String> AVATAR_URL = new Attribute<>("avatar_url");
 

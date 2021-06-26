@@ -1,8 +1,11 @@
 package inside.util;
 
 import com.fasterxml.jackson.annotation.*;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.*;
 import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import discord4j.discordjson.possible.*;
 
 import java.lang.reflect.Type;
@@ -17,10 +20,20 @@ public abstract class JacksonUtil{
             .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.PUBLIC_ONLY)
             .setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.ANY)
             .registerModule(new Jdk8Module())
+            .registerModule(new JavaTimeModule())
+            .registerModule(new ParameterNamesModule())
             .registerModule(new PossibleModule());
 
     public static ObjectMapper mapper(){
         return mapper;
+    }
+
+    public static <T> T fromJson(String string, TypeReference<T> reference){
+        try{
+            return mapper.readValue(string, reference);
+        }catch(Throwable t){
+            throw new RuntimeException(t);
+        }
     }
 
     public static <T> T fromJson(String string, Class<T> clazz){

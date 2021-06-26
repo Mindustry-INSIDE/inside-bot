@@ -2,10 +2,10 @@ package inside.data.entity;
 
 import discord4j.common.util.Snowflake;
 import inside.data.entity.base.ConfigEntity;
-import org.joda.time.*;
 
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.*;
 import java.util.*;
 
 @Entity
@@ -14,8 +14,8 @@ public class ActiveUserConfig extends ConfigEntity{
     @Serial
     private static final long serialVersionUID = -3848703477201041407L;
 
-    @Column(name = "keep_counting_period")
-    private Duration keepCountingPeriod;
+    @Column(name = "keep_counting_duration")
+    private Duration keepCountingDuration;
 
     @Column(name = "message_barrier")
     private int messageBarrier;
@@ -26,8 +26,8 @@ public class ActiveUserConfig extends ConfigEntity{
     @Transient
     public boolean resetIfAfter(Activity activity){
         Objects.requireNonNull(activity, "activity");
-        DateTime last = activity.lastSentMessage();
-        if(last != null && last.isBefore(DateTime.now().minus(keepCountingPeriod))){
+        Instant last = activity.lastSentMessage();
+        if(last != null && last.isBefore(Instant.now().minus(keepCountingDuration))){
             activity.messageCount(0);
             return true;
         }
@@ -37,17 +37,17 @@ public class ActiveUserConfig extends ConfigEntity{
     @Transient
     public boolean isActive(Activity activity){
         Objects.requireNonNull(activity, "activity");
-        DateTime last = activity.lastSentMessage();
-        return last != null && last.isAfter(DateTime.now().minus(keepCountingPeriod)) &&
+        Instant last = activity.lastSentMessage();
+        return last != null && last.isAfter(Instant.now().minus(keepCountingDuration)) &&
                 activity.messageCount() >= messageBarrier;
     }
 
-    public Duration keepCountingPeriod(){
-        return keepCountingPeriod;
+    public Duration keepCountingDuration(){
+        return keepCountingDuration;
     }
 
-    public void keepCountingPeriod(Duration keepCountingPeriod){
-        this.keepCountingPeriod = Objects.requireNonNull(keepCountingPeriod, "keepCountingPeriod");
+    public void keepCountingDuration(Duration keepCountingDuration){
+        this.keepCountingDuration = Objects.requireNonNull(keepCountingDuration, "keepCountingDuration");
     }
 
     public int messageBarrier(){
@@ -69,7 +69,7 @@ public class ActiveUserConfig extends ConfigEntity{
     @Override
     public String toString(){
         return "ActiveUserConfig{" +
-                "keepCountingPeriod=" + keepCountingPeriod +
+                "keepCountingDuration=" + keepCountingDuration +
                 ", messageBarrier=" + messageBarrier +
                 ", roleId='" + roleId + '\'' +
                 "} " + super.toString();

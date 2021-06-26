@@ -5,7 +5,6 @@ import inside.Settings;
 import inside.data.entity.AuditAction;
 import inside.data.repository.AuditActionRepository;
 import inside.data.service.EntityRetriever;
-import org.joda.time.DateTime;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
@@ -14,6 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
 import java.io.InputStream;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,6 +72,6 @@ public class AuditServiceImpl implements AuditService{
     @Scheduled(cron = "0 0 */4 * * *")
     @Transactional
     public void cleanUp(){
-        repository.deleteAllByTimestampBefore(DateTime.now().minus(settings.getAudit().getHistoryKeep().toMillis()));
+        repository.deleteAllByTimestampBefore(LocalDateTime.now().minus(settings.getAudit().getHistoryKeep()));
     }
 }

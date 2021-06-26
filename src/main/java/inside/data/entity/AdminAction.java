@@ -3,13 +3,13 @@ package inside.data.entity;
 import inside.data.entity.base.GuildEntity;
 import org.hibernate.annotations.*;
 import org.immutables.builder.Builder;
-import org.joda.time.DateTime;
 import reactor.util.annotation.Nullable;
 
 import javax.persistence.Entity;
 import javax.persistence.Table;
 import javax.persistence.*;
 import java.io.Serial;
+import java.time.Instant;
 import java.util.Optional;
 
 @Entity
@@ -35,18 +35,18 @@ public class AdminAction extends GuildEntity{
     private String reason;
 
     @Column
-    private DateTime timestamp;
+    private Instant timestamp;
 
     @Column(name = "end_timestamp")
-    private DateTime endTimestamp;
+    private Instant endTimestamp;
 
     protected AdminAction(){}
 
     @Builder.Constructor
     protected AdminAction(long guildId, AdminActionType type,
                           LocalMember admin, LocalMember target,
-                          @Nullable String reason, DateTime timestamp,
-                          @Nullable DateTime endTimestamp){
+                          @Nullable String reason, Instant timestamp,
+                          @Nullable Instant endTimestamp){
         this.guildId = guildId;
         this.type = type;
         this.admin = admin;
@@ -76,11 +76,11 @@ public class AdminAction extends GuildEntity{
         return Optional.ofNullable(reason);
     }
 
-    public DateTime timestamp(){
+    public Instant timestamp(){
         return timestamp;
     }
 
-    public Optional<DateTime> endTimestamp(){
+    public Optional<Instant> endTimestamp(){
         return Optional.ofNullable(endTimestamp);
     }
 
