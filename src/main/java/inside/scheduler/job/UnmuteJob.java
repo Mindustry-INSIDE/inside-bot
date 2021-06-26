@@ -2,8 +2,8 @@ package inside.scheduler.job;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.Member;
-import inside.data.service.*;
-import inside.service.DiscordService;
+import inside.data.service.EntityRetriever;
+import inside.service.*;
 import org.quartz.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;

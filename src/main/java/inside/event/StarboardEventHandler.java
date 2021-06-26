@@ -19,7 +19,7 @@ import reactor.math.MathFlux;
 import reactor.util.context.Context;
 import reactor.util.function.Tuples;
 
-import java.time.*;
+import java.time.Instant;
 import java.time.format.*;
 import java.util.*;
 import java.util.function.Function;
@@ -110,7 +110,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                         embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                                                 .withLocale(context.get(KEY_LOCALE))
                                                 .withZone(context.get(KEY_TIMEZONE))
-                                                .format(LocalDateTime.now()), null);
+                                                .format(Instant.now()), null);
                                         embed.setAuthor(user.getUsername(), null, user.getAvatarUrl());
                                         embed.setDescription(source.getContent());
                                         embed.setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));

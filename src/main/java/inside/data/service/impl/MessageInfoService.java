@@ -10,7 +10,7 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Mono;
 import reactor.util.annotation.Nullable;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 // or LongLongTuple2?
 @Service
@@ -34,6 +34,6 @@ public class MessageInfoService extends BaseLongObjEntityService<MessageInfo, Me
     @Transactional
     @Scheduled(cron = "0 0 */4 * * *")
     public void cleanUp(){
-        repository.deleteAllByTimestampBefore(LocalDateTime.now().minus(settings.getAudit().getHistoryKeep()));
+        repository.deleteAllByTimestampBefore(Instant.now().minus(settings.getAudit().getHistoryKeep()));
     }
 }

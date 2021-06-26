@@ -13,7 +13,7 @@ import reactor.core.publisher.Mono;
 import reactor.util.function.Tuple2;
 
 import java.io.InputStream;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.*;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -72,6 +72,6 @@ public class AuditServiceImpl implements AuditService{
     @Scheduled(cron = "0 0 */4 * * *")
     @Transactional
     public void cleanUp(){
-        repository.deleteAllByTimestampBefore(LocalDateTime.now().minus(settings.getAudit().getHistoryKeep()));
+        repository.deleteAllByTimestampBefore(Instant.now().minus(settings.getAudit().getHistoryKeep()));
     }
 }

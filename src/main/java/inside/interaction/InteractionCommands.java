@@ -11,8 +11,7 @@ import inside.Settings;
 import inside.audit.*;
 import inside.command.Commands;
 import inside.data.entity.*;
-import inside.data.service.AdminService;
-import inside.service.MessageService;
+import inside.service.*;
 import inside.util.*;
 import inside.util.func.BooleanFunction;
 import inside.util.io.ReusableByteInputStream;
@@ -261,7 +260,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.keep-counting-duration.current",
                                         formatDuration.apply(activeUserConfig.keepCountingDuration())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = MessageUtil.parseDuration(str);
+                                    Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
@@ -439,7 +438,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.warn-delay.current",
                                         formatDuration.apply(adminConfig.warnExpireDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = MessageUtil.parseDuration(str);
+                                    Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
@@ -458,7 +457,7 @@ public class InteractionCommands{
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.base-delay.current",
                                         formatDuration.apply(adminConfig.muteBaseDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
-                                    Duration duration = MessageUtil.parseDuration(str);
+                                    Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
                                         return messageService.err(env.event(), "command.settings.incorrect-duration");
                                     }
