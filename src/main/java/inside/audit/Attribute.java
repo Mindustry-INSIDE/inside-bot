@@ -34,7 +34,7 @@ public final class Attribute<T>{
     public final String name;
 
     private Attribute(String name){
-        this.name = name;
+        this.name = Objects.requireNonNull(name, "name");
     }
 
     @Override

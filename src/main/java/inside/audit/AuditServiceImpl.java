@@ -51,6 +51,7 @@ public class AuditServiceImpl implements AuditService{
         if(forwardProvider != null){
             if(settings.getDiscord().isAuditLogSaving()){
                 repository.save(action);
+                System.out.println(repository.findAll());
             }
             return entityRetriever.getAuditConfigById(action.guildId())
                     .flatMap(config -> forwardProvider.send(config, action, attachments));
@@ -59,7 +60,7 @@ public class AuditServiceImpl implements AuditService{
     }
 
     @Override
-    public AuditActionBuilder log(Snowflake guildId, AuditActionType type){
+    public AuditActionBuilder newBuilder(Snowflake guildId, AuditActionType type){
         return new AuditActionBuilder(guildId, type){
             @Override
             public Mono<Void> save(){

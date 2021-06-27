@@ -104,7 +104,7 @@ public class Settings{
 
     public static class Defaults{
 
-        private List<String> prefixes = Arrays.asList("#");
+        private List<String> prefixes = Collections.singletonList("#");
 
         private ZoneId timeZone = ZoneId.of("Etc/Greenwich");
 
@@ -217,9 +217,9 @@ public class Settings{
 
     public static class Audit{
 
-        private Duration historyKeep = Duration.ofDays(21);
+        private Duration historyKeep = Duration.ofDays(31);
 
-        private Duration memberKeep = Duration.ofDays(160);
+        private Duration memberKeep = Duration.ofDays(365);
 
         private Duration starboardKeep = Duration.ofDays(14);
 

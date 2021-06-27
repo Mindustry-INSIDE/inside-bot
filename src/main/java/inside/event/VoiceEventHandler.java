@@ -40,7 +40,7 @@ public class VoiceEventHandler extends ReactiveEventAdapter{
                     .cast(GuildChannel.class);
 
             return initContext.flatMap(context -> Mono.zip(old, event.getCurrent().getUser(), event.getCurrent().getChannel())
-                    .flatMap(function((oldChannel, user, currentChannel) -> auditService.log(guildId, VOICE_MOVE)
+                    .flatMap(function((oldChannel, user, currentChannel) -> auditService.newBuilder(guildId, VOICE_MOVE)
                             .withAttribute(Attribute.OLD_CHANNEL, AuditActionBuilder.getReference(oldChannel))
                             .withChannel(currentChannel)
                             .withUser(user)
@@ -51,7 +51,7 @@ public class VoiceEventHandler extends ReactiveEventAdapter{
         return initContext.flatMap(context -> Mono.justOrEmpty(event.getOld())
                 .defaultIfEmpty(event.getCurrent())
                 .flatMap(state -> Mono.zip(state.getChannel(), state.getUser()))
-                .flatMap(function((channel, user) -> auditService.log(guildId, event.isLeaveEvent() ? VOICE_LEAVE : VOICE_JOIN)
+                .flatMap(function((channel, user) -> auditService.newBuilder(guildId, event.isLeaveEvent() ? VOICE_LEAVE : VOICE_JOIN)
                         .withChannel(channel)
                         .withUser(user)
                         .save()))

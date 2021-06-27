@@ -1099,7 +1099,7 @@ public class Commands{
                             messages.next().flatMap(Message::delete).then()))
                     .then();
 
-            Mono<Void> log =  reply.flatMap(channel -> auditService.log(author.getGuildId(), AuditActionType.MESSAGE_CLEAR)
+            Mono<Void> log =  reply.flatMap(channel -> auditService.newBuilder(author.getGuildId(), AuditActionType.MESSAGE_CLEAR)
                     .withUser(author)
                     .withChannel(channel)
                     .withAttribute(COUNT, number)

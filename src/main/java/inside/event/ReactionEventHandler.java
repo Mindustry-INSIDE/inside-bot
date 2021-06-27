@@ -38,7 +38,7 @@ public class ReactionEventHandler extends ReactiveEventAdapter{
 
         return initContext.flatMap(context -> Mono.zip(event.getUser().flatMap(user -> user.asMember(guildId)),
                 event.getChannel().ofType(GuildChannel.class))
-                .flatMap(function((member, channel) -> auditService.log(guildId, AuditActionType.REACTION_ADD)
+                .flatMap(function((member, channel) -> auditService.newBuilder(guildId, AuditActionType.REACTION_ADD)
                         .withUser(member)
                         .withChannel(channel)
                         .withAttribute(Attribute.MESSAGE_ID, event.getMessageId())
@@ -61,7 +61,7 @@ public class ReactionEventHandler extends ReactiveEventAdapter{
 
         return initContext.flatMap(context -> Mono.zip(event.getUser().flatMap(user -> user.asMember(guildId)),
                 event.getChannel().ofType(GuildChannel.class))
-                .flatMap(function((member, channel) -> auditService.log(guildId, AuditActionType.REACTION_REMOVE)
+                .flatMap(function((member, channel) -> auditService.newBuilder(guildId, AuditActionType.REACTION_REMOVE)
                         .withUser(member)
                         .withChannel(channel)
                         .withAttribute(Attribute.MESSAGE_ID, event.getMessageId())
@@ -83,7 +83,7 @@ public class ReactionEventHandler extends ReactiveEventAdapter{
                         KEY_TIMEZONE, guildConfig.timeZone()));
 
         return initContext.flatMap(context -> event.getChannel().ofType(GuildChannel.class)
-                .flatMap(channel -> auditService.log(guildId, AuditActionType.REACTION_REMOVE_ALL)
+                .flatMap(channel -> auditService.newBuilder(guildId, AuditActionType.REACTION_REMOVE_ALL)
                         .withChannel(channel)
                         .withAttribute(Attribute.MESSAGE_ID, event.getMessageId())
                         .save())

@@ -143,7 +143,7 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                             return Mono.empty();
                         }
 
-                        AuditActionBuilder builder = auditService.log(guildId, MESSAGE_EDIT)
+                        AuditActionBuilder builder = auditService.newBuilder(guildId, MESSAGE_EDIT)
                                 .withChannel(channel)
                                 .withUser(member)
                                 .withAttribute(OLD_CONTENT, oldContent)
@@ -187,7 +187,7 @@ public class MessageEventHandler extends ReactiveEventAdapter{
         return initContext.flatMap(context -> Mono.zip(event.getChannel().ofType(TextChannel.class), messageInfo)
                 .flatMap(function((channel, info) -> {
                     String decrypted = messageService.decrypt(info.content(), message.getId(), message.getChannelId());
-                    AuditActionBuilder builder = auditService.log(guildId, MESSAGE_DELETE)
+                    AuditActionBuilder builder = auditService.newBuilder(guildId, MESSAGE_DELETE)
                             .withChannel(channel)
                             .withAttribute(OLD_CONTENT, decrypted);
 

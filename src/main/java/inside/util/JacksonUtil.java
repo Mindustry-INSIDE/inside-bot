@@ -7,6 +7,7 @@ import com.fasterxml.jackson.datatype.jdk8.Jdk8Module;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.fasterxml.jackson.module.paramnames.ParameterNamesModule;
 import discord4j.discordjson.possible.*;
+import inside.util.json.AdapterModule;
 
 import java.lang.reflect.Type;
 
@@ -19,6 +20,7 @@ public abstract class JacksonUtil{
             .setVisibility(PropertyAccessor.ALL, JsonAutoDetect.Visibility.NONE)
             .setVisibility(PropertyAccessor.GETTER, JsonAutoDetect.Visibility.PUBLIC_ONLY)
             .setVisibility(PropertyAccessor.CREATOR, JsonAutoDetect.Visibility.ANY)
+            .registerModule(new AdapterModule())
             .registerModule(new Jdk8Module())
             .registerModule(new JavaTimeModule())
             .registerModule(new ParameterNamesModule())

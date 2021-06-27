@@ -16,7 +16,7 @@ import java.util.*;
 public abstract class AuditActionBuilder{
 
     protected final AuditAction action;
-
+    @Nullable
     protected List<Tuple2<String, InputStream>> attachments;
 
     protected AuditActionBuilder(Snowflake guildId, AuditActionType type){

@@ -66,7 +66,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                         .thenReturn(owner)))
                 .switchIfEmpty(warn.then(Mono.empty())));
 
-        return initContext.flatMap(context -> auditService.log(event.getGuildId(), MEMBER_JOIN)
+        return initContext.flatMap(context -> auditService.newBuilder(event.getGuildId(), MEMBER_JOIN)
                 .withUser(member)
                 .save()
                 .and(muteEvade)
@@ -84,7 +84,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                 .map(guildConfig -> Context.of(KEY_LOCALE, guildConfig.locale(),
                         KEY_TIMEZONE, guildConfig.timeZone()));
 
-        Mono<Void> log = auditService.log(event.getGuildId(), MEMBER_LEAVE)
+        Mono<Void> log = auditService.newBuilder(event.getGuildId(), MEMBER_LEAVE)
                 .withUser(user)
                 .save();
 
@@ -95,7 +95,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                         entry.getTargetId().map(target -> target.equals(user.getId())).orElse(false))
                 .next()
                 .flatMap(entry -> Mono.justOrEmpty(entry.getResponsibleUser())
-                        .flatMap(admin -> auditService.log(guildId, MEMBER_KICK)
+                        .flatMap(admin -> auditService.newBuilder(guildId, MEMBER_KICK)
                                 .withUser(admin)
                                 .withTargetUser(user)
                                 .withAttribute(REASON, entry.getReason()
@@ -112,7 +112,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                         entry.getTargetId().map(target -> target.equals(user.getId())).orElse(false))
                 .next()
                 .flatMap(entry -> Mono.justOrEmpty(entry.getResponsibleUser())
-                        .flatMap(admin -> auditService.log(guildId, MEMBER_BAN)
+                        .flatMap(admin -> auditService.newBuilder(guildId, MEMBER_BAN)
                                 .withUser(admin)
                                 .withTargetUser(user)
                                 .withAttribute(REASON, entry.getReason()
@@ -143,7 +143,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                         .flatMap(localMember -> {
                             Mono<Void> logAvatarUpdate = Mono.defer(() -> {
                                 if(!old.getAvatarUrl().equals(member.getAvatarUrl())){
-                                    return auditService.log(guildId, MEMBER_AVATAR_UPDATE)
+                                    return auditService.newBuilder(guildId, MEMBER_AVATAR_UPDATE)
                                             .withUser(member)
                                             .withAttribute(AVATAR_URL, member.getAvatarUrl())
                                             .withAttribute(OLD_AVATAR_URL, old.getAvatarUrl())
@@ -162,7 +162,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                                 List<Snowflake> difference = new ArrayList<>(added ? event.getCurrentRoleIds() : oldRoleIds);
                                 difference.removeIf(added ? oldRoleIds::contains : event.getCurrentRoleIds()::contains);
 
-                                return auditService.log(guildId, added ? MEMBER_ROLE_ADD : MEMBER_ROLE_REMOVE)
+                                return auditService.newBuilder(guildId, added ? MEMBER_ROLE_ADD : MEMBER_ROLE_REMOVE)
                                         .withUser(member)
                                         .withAttribute(AVATAR_URL, member.getAvatarUrl())
                                         .withAttribute(ROLE_ID, difference.get(0)) // TODO: check if bulk deletion/addition is possible

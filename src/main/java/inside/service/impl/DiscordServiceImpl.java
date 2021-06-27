@@ -137,7 +137,6 @@ public class DiscordServiceImpl implements DiscordService{
                     if(activeUserConfig.isActive(activity)){
                         return member.addRole(roleId);
                     }
-
                     return member.removeRole(roleId);
                 }).and(Mono.defer(() -> {
                     if(activeUserConfig.resetIfAfter(localMember.activity())){

@@ -72,7 +72,7 @@ public class AdminServiceImpl implements AdminService{
                         .endTimestamp(endTimestamp)
                         .build()))));
 
-        Mono<Void> log = auditService.log(admin.getGuildId(), AuditActionType.MEMBER_MUTE)
+        Mono<Void> log = auditService.newBuilder(admin.getGuildId(), AuditActionType.MEMBER_MUTE)
                 .withUser(admin)
                 .withTargetUser(target)
                 .withAttribute(REASON, reason)
@@ -108,7 +108,7 @@ public class AdminServiceImpl implements AdminService{
                 .flatMap(adminAction -> Mono.fromRunnable(() -> repository.delete(adminAction)))
                 .then();
 
-        Mono<Void> log = auditService.log(target.getGuildId(), AuditActionType.MEMBER_UNMUTE)
+        Mono<Void> log = auditService.newBuilder(target.getGuildId(), AuditActionType.MEMBER_UNMUTE)
                 .withTargetUser(target)
                 .save();
 
@@ -135,10 +135,13 @@ public class AdminServiceImpl implements AdminService{
                         .target(targetLocalMember)
                         .reason(reason)
                         .timestamp(Instant.now())
-                        .endTimestamp(Instant.now().plus(adminConfig.warnExpireDelay()))
+                        .endTimestamp(Optional.ofNullable(adminConfig.warnExpireDelay())
+                                .map(jduration -> Instant.now().plus(jduration))
+                                .orElse(null))
                         .build())))
-                .map(adminAction -> Try.run(() -> schedulerFactoryBean.getScheduler().scheduleJob(UnwarnJob.createDetails(adminAction), TriggerBuilder.newTrigger()
-                        .startAt(adminAction.endTimestamp()
+                .filter(action -> action.endTimestamp().isPresent())
+                .map(action -> Try.run(() -> schedulerFactoryBean.getScheduler().scheduleJob(UnwarnJob.createDetails(action), TriggerBuilder.newTrigger()
+                        .startAt(action.endTimestamp()
                                 .map(Date::from)
                                 .orElseThrow(IllegalStateException::new))
                         .withSchedule(SimpleScheduleBuilder.simpleSchedule())
