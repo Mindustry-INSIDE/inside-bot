@@ -9,6 +9,7 @@ import inside.command.model.CommandEnvironment;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
+import java.util.*;
 import java.util.function.Consumer;
 
 public interface MessageService extends MessageHolderService{
@@ -28,6 +29,12 @@ public interface MessageService extends MessageHolderService{
     String getEnum(ContextView ctx, Enum<?> type);
 
     String format(ContextView ctx, String key, Object... args);
+
+    Optional<Locale> getLocale(String str);
+
+    Map<String, Locale> getSupportedLocales();
+
+    Locale getDefaultLocale();
 
     // send (command)
 

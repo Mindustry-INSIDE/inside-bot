@@ -9,7 +9,7 @@ import discord4j.rest.util.AllowedMentions;
 import inside.Settings;
 import inside.command.model.CommandEnvironment;
 import inside.service.MessageService;
-import inside.util.*;
+import inside.util.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.*;
 import org.springframework.stereotype.Service;
@@ -17,13 +17,44 @@ import reactor.core.publisher.Mono;
 import reactor.core.scheduler.Schedulers;
 import reactor.util.context.ContextView;
 
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
+import java.util.regex.Pattern;
 
 import static inside.util.ContextUtil.*;
 
 @Service
 public class MessageServiceImpl implements MessageService{
+
+    private static final Map<String, Locale> locales;
+
+    private static Map<String, Map<String, Pattern>> pluralRules;
+
+    private static final String ruLocale = "ru";
+    private static final String defaultLocale = "en";
+
+    static{
+        locales = Map.of(
+                ruLocale, new Locale(ruLocale),
+                defaultLocale, new Locale(defaultLocale)
+        );
+
+        pluralRules = Map.of(
+                ruLocale, Map.of(
+                        "zero", Pattern.compile("^\\d*0$"),
+                        "one", Pattern.compile("^(-?\\d*[^1])?1$"),
+                        "two", Pattern.compile("^(-?\\d*[^1])?2$"),
+                        "few", Pattern.compile("(^(-?\\d*[^1])?3)|(^(-?\\d*[^1])?4)$"),
+                        "many", Pattern.compile("^\\d+$")
+                ),
+                defaultLocale, Map.of(
+                        "zero", Pattern.compile("^0$"),
+                        "one", Pattern.compile("^1$"),
+                        "other", Pattern.compile("^\\d+$")
+                )
+        );
+    }
 
     private final ApplicationContext context;
 
@@ -50,8 +81,18 @@ public class MessageServiceImpl implements MessageService{
 
     @Override
     public String getCount(ContextView ctx, String key, long count){
-        String code = LocaleUtil.getCount(count, ctx.get(KEY_LOCALE));
+        String code = getCount0(ctx.get(KEY_LOCALE), count);
         return get(ctx, String.format("%s.%s", key, code));
+    }
+
+    private String getCount0(Locale locale, long value){
+        String str = String.valueOf(value);
+        Map<String, Pattern> rules = pluralRules.getOrDefault(locale.getLanguage(), pluralRules.get(defaultLocale));
+        return rules.entrySet().stream()
+                .filter(plural -> plural.getValue().matcher(str).find())
+                .findFirst()
+                .map(Map.Entry::getKey)
+                .orElse("other");
     }
 
     @Override
@@ -66,6 +107,21 @@ public class MessageServiceImpl implements MessageService{
         }catch(NoSuchMessageException e){
             return key;
         }
+    }
+
+    @Override
+    public Optional<Locale> getLocale(String str){
+        return Optional.ofNullable(locales.get(str));
+    }
+
+    @Override
+    public Map<String, Locale> getSupportedLocales(){
+        return locales;
+    }
+
+    @Override
+    public Locale getDefaultLocale(){
+        return locales.get(defaultLocale);
     }
 
     @Override

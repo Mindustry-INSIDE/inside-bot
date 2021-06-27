@@ -108,6 +108,8 @@ public class Settings{
 
         private ZoneId timeZone = ZoneId.of("Etc/Greenwich");
 
+        private Locale locale = new Locale("en");
+
         private Color normalColor = Color.of(0xc4f5b7);
 
         private Color errorColor = Color.of(0xff3838);
@@ -140,6 +142,14 @@ public class Settings{
 
         public void setTimeZone(String timeZone){
             this.timeZone = ZoneId.of(timeZone);
+        }
+
+        public Locale getLocale(){
+            return locale;
+        }
+
+        public void setLocale(Locale locale){
+            this.locale = locale;
         }
 
         public Color getNormalColor(){

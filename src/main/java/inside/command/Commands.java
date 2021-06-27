@@ -912,7 +912,7 @@ public class Commands{
             Locale locale = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .map(LocaleUtil::get)
+                    .flatMap(messageService::getLocale)
                     .orElse(null);
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
@@ -920,7 +920,7 @@ public class Commands{
                     .filterWhen(guildConfig -> adminService.isOwner(member).map(bool -> bool && present))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(locale == null){
-                            String all = LocaleUtil.locales.values().stream()
+                            String all = messageService.getSupportedLocales().values().stream()
                                     .map(locale1 -> String.format("%s (`%s`)", locale1.getDisplayName(), locale1))
                                     .collect(Collectors.joining(", "));
 

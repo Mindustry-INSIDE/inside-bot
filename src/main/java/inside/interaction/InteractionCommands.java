@@ -690,9 +690,9 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asString))
                                 .flatMap(str -> {
-                                    Locale locale = LocaleUtil.get(str);
+                                    Locale locale = messageService.getLocale(str).orElse(null);
                                     if(locale == null){
-                                        String all = formatCollection(LocaleUtil.locales.values(), locale1 ->
+                                        String all = formatCollection(messageService.getSupportedLocales().values(), locale1 ->
                                                 "%s (`%s`)".formatted(locale1.getDisplayName(), locale1.toString()));
                                         return messageService.text(env.event(), "command.settings.locale.all", all);
                                     }

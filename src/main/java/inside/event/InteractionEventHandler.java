@@ -5,8 +5,8 @@ import discord4j.core.event.domain.InteractionCreateEvent;
 import inside.Settings;
 import inside.data.service.EntityRetriever;
 import inside.interaction.InteractionCommandEnvironment;
-import inside.service.DiscordService;
-import inside.util.*;
+import inside.service.*;
+import inside.util.ContextUtil;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -18,6 +18,9 @@ public class InteractionEventHandler extends ReactiveEventAdapter{
 
     @Autowired
     private EntityRetriever entityRetriever;
+
+    @Autowired
+    private MessageService messageService;
 
     @Autowired
     private Settings settings;
@@ -32,7 +35,7 @@ public class InteractionEventHandler extends ReactiveEventAdapter{
                         .switchIfEmpty(entityRetriever.createGuildConfig(guildId)))
                 .map(guildConfig -> Context.of(ContextUtil.KEY_LOCALE, guildConfig.locale(),
                         ContextUtil.KEY_TIMEZONE, guildConfig.timeZone()))
-                .defaultIfEmpty(Context.of(ContextUtil.KEY_LOCALE, LocaleUtil.getDefaultLocale(),
+                .defaultIfEmpty(Context.of(ContextUtil.KEY_LOCALE, messageService.getDefaultLocale(),
                         ContextUtil.KEY_TIMEZONE, settings.getDefaults().getTimeZone()));
 
         return initContext.flatMap(context -> discordService.handle(InteractionCommandEnvironment.builder()

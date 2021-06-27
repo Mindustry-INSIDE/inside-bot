@@ -8,7 +8,7 @@ import inside.Settings;
 import inside.data.entity.*;
 import inside.data.service.*;
 import inside.service.MessageService;
-import inside.util.*;
+import inside.util.MessageUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.*;
@@ -282,7 +282,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
             GuildConfig guildConfig = new GuildConfig();
             guildConfig.guildId(guildId);
             guildConfig.prefixes(settings.getDefaults().getPrefixes());
-            guildConfig.locale(LocaleUtil.getDefaultLocale());
+            guildConfig.locale(messageService.getDefaultLocale());
             guildConfig.timeZone(settings.getDefaults().getTimeZone());
             return save(guildConfig).thenReturn(guildConfig);
         });

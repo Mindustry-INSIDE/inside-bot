@@ -48,7 +48,7 @@ public final class CommandHolder{
         });
 
         // get 'en' parameter text for validation and option search
-        String paramText = messageService.get(Context.of(KEY_LOCALE, LocaleUtil.getDefaultLocale()), meta.params());
+        String paramText = messageService.get(Context.of(KEY_LOCALE, messageService.getDefaultLocale()), meta.params());
         String[] psplit = paramText.split("(?<=(\\]|>))\\s+(?=(\\[|<))");
         CommandParam[] params = CommandParam.empty;
         if(!paramText.isBlank()){

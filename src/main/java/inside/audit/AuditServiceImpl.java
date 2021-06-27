@@ -51,7 +51,6 @@ public class AuditServiceImpl implements AuditService{
         if(forwardProvider != null){
             if(settings.getDiscord().isAuditLogSaving()){
                 repository.save(action);
-                System.out.println(repository.findAll());
             }
             return entityRetriever.getAuditConfigById(action.guildId())
                     .flatMap(config -> forwardProvider.send(config, action, attachments));
