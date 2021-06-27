@@ -667,12 +667,10 @@ public class InteractionCommands{
                                 .flatMap(str -> {
                                     ZoneId timeZone = Try.ofCallable(() -> ZoneId.of(str)).orElse(null);
                                     if(timeZone == null){
-                                        String suggest = Strings.findClosest(ZoneId.getAvailableZoneIds(), str);
-
-                                        if(suggest != null){
-                                            return messageService.err(env.event(), "command.settings.timezone.unknown.suggest", suggest);
-                                        }
-                                        return messageService.err(env.event(), "command.settings.timezone.unknown");
+                                        return ZoneId.getAvailableZoneIds().stream()
+                                                .min(Comparator.comparingInt(s -> Strings.levenshtein(s, str)))
+                                                .map(s -> messageService.err(env.event(), "command.settings.timezone.unknown.suggest", s))
+                                                .orElse(messageService.err(env.event(), "command.settings.timezone.unknown"));
                                     }
 
                                     guildConfig.timeZone(timeZone);

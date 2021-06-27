@@ -146,11 +146,11 @@ public class Commands{
                                     .setDescription(categoriesStr)));
 
             Mono<Void> snowHelp = Mono.defer(() -> {
-                String key = Strings.findClosest(categoriesWithCommands.get().keySet(), category.orElse(""));
-                if(key != null){
-                    return messageService.err(env, "command.help.found-closest", key);
-                }
-                return messageService.err(env, "command.help.unknown");
+                String unwrapped = category.orElse("");
+                return categoriesWithCommands.get().keySet().stream()
+                        .min(Comparator.comparingInt(s -> Strings.levenshtein(s, unwrapped)))
+                        .map(s -> messageService.err(env, "command.help.found-closest", s))
+                        .orElse(messageService.err(env, "command.help.unknown"));
             });
 
             return Mono.justOrEmpty(category)
@@ -876,12 +876,10 @@ public class Commands{
                     .filterWhen(guildConfig -> adminService.isAdmin(member).map(bool -> bool && present))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(timeZone == null){
-                            String suggest = Strings.findClosest(ZoneId.getAvailableZoneIds(), str);
-
-                            if(suggest != null){
-                                return messageService.err(env, "command.settings.timezone.unknown.suggest", suggest);
-                            }
-                            return messageService.err(env, "command.settings.timezone.unknown");
+                            return ZoneId.getAvailableZoneIds().stream()
+                                    .min(Comparator.comparingInt(s -> Strings.levenshtein(s, str)))
+                                    .map(s -> messageService.err(env, "command.settings.timezone.unknown.suggest", s))
+                                    .orElse(messageService.err(env, "command.settings.timezone.unknown"));
                         }
 
                         guildConfig.timeZone(timeZone);
@@ -1013,7 +1011,7 @@ public class Commands{
                     .flatMap(ignored -> Mono.justOrEmpty(targetId)).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filter(Predicate.not(User::isBot))
-                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
                     .filterWhen(member -> BooleanUtils.not(adminService.isMuted(member)))
                     .switchIfEmpty(messageService.err(env, "command.admin.mute.already-muted").then(Mono.never()))
                     .filterWhen(member -> Mono.zip(adminService.isAdmin(member), adminService.isOwner(author))
@@ -1140,7 +1138,7 @@ public class Commands{
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filter(Predicate.not(User::isBot))
-                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
                     .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
@@ -1215,10 +1213,10 @@ public class Commands{
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filter(Predicate.not(User::isBot))
-                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
-                    .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
                     .flatMap(member -> member.getGuild().flatMap(guild -> guild.ban(member.getId(), spec -> spec.setReason(reason)
                             .setDeleteMessageDays(deleteDays)))
                             .then(member.getGuild().flatMap(guild -> guild.unban(member.getId()))))
@@ -1268,9 +1266,9 @@ public class Commands{
             return Mono.justOrEmpty(targetId)
                     .flatMap(userId -> env.getClient().getMemberById(guildId, userId))
                     .switchIfEmpty(referencedUser)
-                    .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filter(Predicate.not(User::isBot))
-                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
                     .zipWhen(member -> adminService.warnings(member)
                             .switchIfEmpty(messageService.text(env, "command.admin.warnings.empty").then(Mono.never()))
                             .take(21, true).index().collect(collector))
@@ -1302,9 +1300,9 @@ public class Commands{
             return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filter(Predicate.not(User::isBot))
-                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
                     .filterWhen(target -> adminService.isOwner(author).map(owner -> !target.equals(author) || owner))
-                    .switchIfEmpty(messageService.err(env, "command.admin.unwarn.permission-denied").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.admin.unwarn.permission-denied").then(Mono.never()))
                     .flatMap(target -> adminService.warnings(target).count().flatMap(count -> {
                         int warn = index.map(Strings::parseInt).orElse(1);
                         if(count == 0){
@@ -1440,13 +1438,13 @@ public class Commands{
             return entityRetriever.getAdminConfigById(guildId)
                     .switchIfEmpty(entityRetriever.createAdminConfig(guildId))
                     .filter(adminConfig -> adminConfig.muteRoleID().isPresent())
-                    .switchIfEmpty(messageService.err(env, "command.disabled.mute").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.disabled.mute").then(Mono.never()))
                     .flatMap(ignored -> Mono.justOrEmpty(targetId))
                     .flatMap(id -> env.getClient().getMemberById(guildId, id))
-                    .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filterWhen(adminService::isMuted)
                     .flatMap(target -> adminService.unmute(target).and(env.getMessage().addReaction(ok)).thenReturn(target))
-                    .switchIfEmpty(messageService.err(env, "audit.member.unmute.is-not-muted").then(Mono.empty()))
+                    .switchIfEmpty(messageService.err(env, "audit.member.unmute.is-not-muted").then(Mono.never()))
                     .then();
         }
     }

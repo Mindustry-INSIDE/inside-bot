@@ -2,10 +2,7 @@ package inside.util;
 
 import reactor.util.annotation.Nullable;
 
-import java.util.function.Function;
-
 public abstract class Strings{
-    public static final int DEFAULT_LEVENSHTEIN_DST = 3;
 
     private Strings(){
 
@@ -58,31 +55,5 @@ public abstract class Strings{
         }
 
         return dp[x.length()][y.length()];
-    }
-
-    @Nullable
-    public static <T extends CharSequence> T findClosest(Iterable<? extends T> all, CharSequence wrong){
-        return findClosest(all, Function.identity(), wrong);
-    }
-
-    @Nullable
-    public static <T> T findClosest(Iterable<? extends T> all, Function<T, ? extends CharSequence> comp, CharSequence wrong){
-        return findClosest(all, comp, wrong, DEFAULT_LEVENSHTEIN_DST);
-    }
-
-    @Nullable
-    public static <T> T findClosest(Iterable<? extends T> all, Function<T, ? extends CharSequence> comp, CharSequence wrong, int max){
-        int min = 0;
-        T closest = null;
-
-        for(T t : all){
-            int dst = levenshtein(comp.apply(t), wrong);
-            if(dst < max && (closest == null || dst < min)){
-                min = dst;
-                closest = t;
-            }
-        }
-
-        return closest;
     }
 }

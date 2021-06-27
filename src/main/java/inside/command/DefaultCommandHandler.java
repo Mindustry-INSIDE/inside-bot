@@ -60,26 +60,13 @@ public class DefaultCommandHandler implements CommandHandler{
                 .zipWhen(s -> Mono.just(s.contains(" ") ? s.substring(0, s.indexOf(" ")) : s).map(String::toLowerCase))
                 .cache();
 
-        Mono<Void> suggestion = text.map(Tuple2::getT1).flatMap(commandName -> {
-            String closest = null;
-            int min = 0;
-            for(CommandInfo info : commandHolder.getCommandInfoMap().values()){
-                for(String str : info.text()){
-                    int dst = Strings.levenshtein(str, commandName);
-                    if(dst < Strings.DEFAULT_LEVENSHTEIN_DST && (closest == null || dst < min)){
-                        min = dst;
-                        closest = str;
-                    }
-                }
-            }
-
-            messageService.awaitEdit(environment.getMessage().getId());
-            if(closest != null){
-                return messageService.err(environment, "command.response.found-closest", closest);
-            }
-            return prefix.map(GuildConfig::formatPrefix)
-                    .flatMap(str -> messageService.err(environment, "command.response.unknown", str));
-        });
+        Mono<Void> suggestion = text.map(Tuple2::getT1).flatMap(commandName -> commandHolder.getCommandInfoMap().values().stream()
+                .flatMap(commandInfo -> Arrays.stream(commandInfo.text()))
+                .min(Comparator.comparingInt(s -> Strings.levenshtein(s, commandName)))
+                .map(s -> messageService.err(environment, "command.response.found-closest", s))
+                .orElse(prefix.map(GuildConfig::formatPrefix).flatMap(str ->
+                        messageService.err(environment, "command.response.unknown", str)))
+                .doFirst(() -> messageService.awaitEdit(environment.getMessage().getId())));
 
         return text.flatMap(TupleUtils.function((commandstr, cmd) -> Mono.justOrEmpty(commandHolder.getCommand(cmd))
                 .switchIfEmpty(suggestion.then(Mono.empty()))
