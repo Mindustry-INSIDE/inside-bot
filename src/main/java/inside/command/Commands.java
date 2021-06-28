@@ -236,6 +236,19 @@ public class Commands{
     //     }
     // }
 
+    @DiscordCommand(key = "google", params = "command.google.params", description = "command.google.description")
+    public static class GoogleCommand extends Command{
+        @Override
+        public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
+            String text = interaction.getOption(0)
+                    .flatMap(CommandOption::getValue)
+                    .map(OptionValue::asString)
+                    .orElseThrow(IllegalStateException::new);
+
+            return messageService.text(env, "https://www.google.com/search?q=" + URLEncoder.encode(text, StandardCharsets.UTF_8));
+        }
+    }
+
     @DiscordCommand(key = {"base64", "b64"}, params = "command.base64.params", description = "command.base64.description")
     public static class Base64Command extends Command{
         private final Lazy<HttpClient> httpClient = Lazy.of(ReactorResources.DEFAULT_HTTP_CLIENT);

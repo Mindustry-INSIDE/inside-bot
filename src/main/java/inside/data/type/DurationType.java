@@ -7,6 +7,7 @@ import org.hibernate.type.descriptor.sql.VarcharTypeDescriptor;
 
 import java.time.Duration;
 
+// java duration in string format
 public class DurationType extends AbstractSingleColumnStandardBasicType<Duration> implements LiteralType<Duration>{
 
     public static final DurationType instance = new DurationType();

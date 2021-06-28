@@ -29,7 +29,7 @@ public class MessageServiceImpl implements MessageService{
 
     private static final Map<String, Locale> locales;
 
-    private static Map<String, Map<String, Pattern>> pluralRules;
+    private static final Map<String, Map<String, Pattern>> pluralRules;
 
     private static final String ruLocale = "ru";
     private static final String defaultLocale = "en";

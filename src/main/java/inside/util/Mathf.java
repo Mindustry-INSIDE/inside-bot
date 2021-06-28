@@ -58,28 +58,28 @@ public final class Mathf{
         return value != 0 && (value & value - 1) == 0;
     }
 
+    public static short max(short a, short b) {
+        return a >= b ? a : b;
+    }
+
+    public static short min(short a, short b) {
+        return a <= b ? a : b;
+    }
+
     public static short clamp(short value, short min, short max){
-        if(value < min) return min;
-        if(value > max) return max;
-        return value;
+        return max(min, min(max, value));
     }
 
     public static int clamp(int value, int min, int max){
-        if(value < min) return min;
-        if(value > max) return max;
-        return value;
+        return Math.max(min, Math.min(max, value));
     }
 
     public static long clamp(long value, long min, long max){
-        if(value < min) return min;
-        if(value > max) return max;
-        return value;
+        return Math.max(min, Math.min(max, value));
     }
 
     public static float clamp(float value, float min, float max){
-        if(value < min) return min;
-        if(value > max) return max;
-        return value;
+        return Math.max(min, Math.min(max, value));
     }
 
     public static float clamp(float value){
@@ -87,9 +87,7 @@ public final class Mathf{
     }
 
     public static double clamp(double value, double min, double max){
-        if(value < min) return min;
-        if(value > max) return max;
-        return value;
+        return Math.max(min, Math.min(max, value));
     }
 
     public static float maxZero(float val){
