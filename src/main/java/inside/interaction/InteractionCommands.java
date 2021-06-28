@@ -44,7 +44,8 @@ public class InteractionCommands{
         @Override
         public Mono<Boolean> filter(InteractionCommandEnvironment env){
             if(env.event().getInteraction().getMember().isEmpty()){
-                return messageService.err(env.event(), "command.interaction.only-guild").thenReturn(false);
+                return messageService.err(env.event(), "command.interaction.only-guild")
+                        .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false);
             }
             return Mono.just(true);
         }
@@ -59,8 +60,8 @@ public class InteractionCommands{
             Mono<Boolean> isAdmin = env.event().getInteraction().getMember()
                     .map(adminService::isAdmin)
                     .orElse(Mono.just(false))
-                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(),
-                            "common.permission-denied").thenReturn(false));
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(), "common.permission-denied")
+                            .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false));
 
             return and(super.filter(env), isAdmin);
         }
@@ -81,8 +82,8 @@ public class InteractionCommands{
                     .map(role -> role.getPermissions().contains(Permission.MANAGE_GUILD));
 
             Mono<Boolean> resp = or(isOwner, isGuildManager)
-                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(),
-                            "command.owner-only").thenReturn(false));
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(), "command.owner-only")
+                            .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false));
 
             return and(super.filter(env), resp);
         }
@@ -98,8 +99,8 @@ public class InteractionCommands{
             BooleanFunction<String> formatBool = bool ->
                     messageService.get(env.context(), bool ? "command.settings.enabled" : "command.settings.disabled");
 
-            Function<Duration, String> formatDuration = duration -> DurationFormat.wordBased(env.context().get(KEY_LOCALE))
-                    .print(duration);
+            Function<Duration, String> formatDuration = duration ->
+                    DurationFormat.wordBased(env.context().get(KEY_LOCALE)).format(duration);
 
             Mono<Void> handleStarboard = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
                     .getOption("starboard"))
@@ -202,12 +203,13 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asLong))
                                 .filter(l -> l > 0)
-                                .switchIfEmpty(messageService.text(env.event(),
-                                        "command.settings.negative-number").then(Mono.empty()))
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.negative-number")
+                                        .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).then(Mono.empty()))
                                 .flatMap(l -> {
                                     int i = (int)(long)l;
                                     if(i != l){
-                                        return messageService.err(env.event(), "command.settings.overflow-number");
+                                        return messageService.err(env.event(), "command.settings.overflow-number")
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     starboardConfig.lowerStarBarrier(i);
@@ -262,7 +264,8 @@ public class InteractionCommands{
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
-                                        return messageService.err(env.event(), "command.settings.incorrect-duration");
+                                        return messageService.err(env.event(), "command.settings.incorrect-duration")
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     activeUserConfig.keepCountingDuration(duration);
@@ -279,8 +282,8 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asLong))
                                 .filter(l -> l > 0)
-                                .switchIfEmpty(messageService.text(env.event(),
-                                        "command.settings.negative-number").then(Mono.empty()))
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.negative-number")
+                                        .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).then(Mono.empty()))
                                 .flatMap(l -> {
                                     int i = (int)(long)l;
                                     if(i != l){
@@ -440,7 +443,8 @@ public class InteractionCommands{
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
-                                        return messageService.err(env.event(), "command.settings.incorrect-duration");
+                                        return messageService.err(env.event(), "command.settings.incorrect-duration")
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     adminConfig.warnExpireDelay(duration);
@@ -459,7 +463,8 @@ public class InteractionCommands{
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
-                                        return messageService.err(env.event(), "command.settings.incorrect-duration");
+                                        return messageService.err(env.event(), "command.settings.incorrect-duration")
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     adminConfig.muteBaseDelay(duration);
@@ -670,7 +675,8 @@ public class InteractionCommands{
                                         return ZoneId.getAvailableZoneIds().stream()
                                                 .min(Comparator.comparingInt(s -> Strings.levenshtein(s, str)))
                                                 .map(s -> messageService.err(env.event(), "command.settings.timezone.unknown.suggest", s))
-                                                .orElse(messageService.err(env.event(), "command.settings.timezone.unknown"));
+                                                .orElse(messageService.err(env.event(), "command.settings.timezone.unknown"))
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     guildConfig.timeZone(timeZone);
@@ -692,7 +698,8 @@ public class InteractionCommands{
                                     if(locale == null){
                                         String all = formatCollection(messageService.getSupportedLocales().values(), locale1 ->
                                                 "%s (`%s`)".formatted(locale1.getDisplayName(), locale1.toString()));
-                                        return messageService.text(env.event(), "command.settings.locale.all", all);
+                                        return messageService.text(env.event(), "command.settings.locale.all", all)
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     guildConfig.locale(locale);

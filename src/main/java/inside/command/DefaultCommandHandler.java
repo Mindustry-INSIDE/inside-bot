@@ -39,8 +39,8 @@ public class DefaultCommandHandler implements CommandHandler{
     public Mono<Void> handleMessage(CommandEnvironment environment){
         String message = environment.getMessage().getContent();
         Snowflake guildId = environment.getAuthorAsMember().getGuildId();
-        Mono<Guild> guild = environment.getMessage().getGuild();
         Snowflake selfId = environment.getClient().getSelfId();
+        Mono<Guild> guild = environment.getMessage().getGuild();
 
         Mono<String> prefix = entityRetriever.getGuildConfigById(guildId)
                 .switchIfEmpty(entityRetriever.createGuildConfig(guildId))
@@ -77,7 +77,7 @@ public class DefaultCommandHandler implements CommandHandler{
                     int index = 0;
                     boolean satisfied = false;
                     String argsres = info.paramText().isEmpty() ? "command.response.incorrect-arguments.empty" :
-                                     "command.response.incorrect-arguments";
+                            "command.response.incorrect-arguments";
 
                     if(argstr.matches("^(?i)(help|\\?)$")){
                         return command.filter(environment).flatMap(bool -> bool ? command.help(environment) : Mono.empty());

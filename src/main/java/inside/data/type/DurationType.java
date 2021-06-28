@@ -28,6 +28,6 @@ public class DurationType extends AbstractSingleColumnStandardBasicType<Duration
 
     @Override
     public String objectToSQLString(Duration value, Dialect dialect) throws Exception{
-        return value.toString();
+        return StringType.INSTANCE.objectToSQLString(value.toString(), dialect);
     }
 }

@@ -1,8 +1,5 @@
 package inside.util;
 
-import reactor.util.annotation.Nullable;
-
-import java.io.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
@@ -173,27 +170,22 @@ public class DurationFormat{
         }
 
         @Override
-        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
-            return getPrinter(locale).countFieldsToPrint(duration, stopAt, locale);
+        public int countFieldsToFormat(Duration duration, int stopAt, Locale locale){
+            return getPrinter(locale).countFieldsToFormat(duration, stopAt, locale);
         }
 
         @Override
-        public int calculatePrintedLength(Duration duration, Locale locale){
-            return getPrinter(locale).calculatePrintedLength(duration, locale);
+        public int calculateFormattedLength(Duration duration, Locale locale){
+            return getPrinter(locale).calculateFormattedLength(duration, locale);
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration duration, Locale locale){
-            getPrinter(locale).printTo(buf, duration, locale);
+        public void formatTo(StringBuilder buf, Duration duration, Locale locale){
+            getPrinter(locale).formatTo(buf, duration, locale);
         }
 
-        @Override
-        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
-            getPrinter(locale).printTo(out, duration, locale);
-        }
-
-        private DurationPrinter getPrinter(@Nullable Locale locale){
-            if(locale != null && !locale.equals(formatter.getLocale())){
+        private DurationPrinter getPrinter(Locale locale){
+            if(!locale.equals(formatter.getLocale())){
                 return wordBased(locale).getPrinter();
             }
             return formatter.getPrinter();

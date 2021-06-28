@@ -2,15 +2,12 @@ package inside.util;
 
 import reactor.util.annotation.Nullable;
 
-import java.io.*;
 import java.time.Duration;
 import java.util.*;
 import java.util.concurrent.*;
 import java.util.regex.Pattern;
 
 public class DurationFormatBuilder{
-    private static final double LOG_10 = Math.log(10);
-
     private static final int PRINT_ZERO_RARELY_FIRST = 1;
     private static final int PRINT_ZERO_RARELY_LAST = 2;
     private static final int PRINT_ZERO_IF_SUPPORTED = 3;
@@ -37,7 +34,7 @@ public class DurationFormatBuilder{
     private PeriodFieldAffix prefix;
 
     // List of Printers and Parsers used to build a final formatter.
-    private List<DurationPrinter> printers; // TODO: remove decomposing
+    private List<DurationPrinter> printers;
 
     // Last DurationPrinter appended of each field type.
     private FieldFormatter[] fieldFormatters;
@@ -76,20 +73,20 @@ public class DurationFormatBuilder{
     }
 
     public DurationFormatBuilder append(DurationFormatter formatter){
-        clearPrefix();
-        append0(formatter.getPrinter());
+        Preconditions.requireState(prefix == null, "Prefix not followed by field");
+        printers.add(formatter.getPrinter());
         return this;
     }
 
     public DurationFormatBuilder append(DurationPrinter printer){
-        clearPrefix();
-        append0(printer);
+        Preconditions.requireState(prefix == null, "Prefix not followed by field");
+        printers.add(printer);
         return this;
     }
 
     public DurationFormatBuilder appendLiteral(String text){
-        clearPrefix();
-        append0(new Literal(text));
+        Preconditions.requireState(prefix == null, "Prefix not followed by field");
+        printers.add(new Literal(text));
         return this;
     }
 
@@ -103,8 +100,8 @@ public class DurationFormatBuilder{
         return this;
     }
 
-    public DurationFormatBuilder rejectSignedValues(boolean v){
-        rejectSignedValues = v;
+    public DurationFormatBuilder rejectSignedValues(boolean rejectSignedValues){
+        this.rejectSignedValues = rejectSignedValues;
         return this;
     }
 
@@ -208,7 +205,7 @@ public class DurationFormatBuilder{
     private void appendField(int type, int minPrinted){
         FieldFormatter field = new FieldFormatter(minPrinted, printZeroSetting,
                 maxParsedDigits, rejectSignedValues, type, fieldFormatters, prefix, null);
-        append0(field);
+        printers.add(field);
         fieldFormatters[type] = field;
         prefix = null;
     }
@@ -229,24 +226,15 @@ public class DurationFormatBuilder{
     }
 
     private DurationFormatBuilder appendSuffix(PeriodFieldAffix suffix){
-        DurationPrinter originalPrinter;
-        if(printers.size() > 0){
-            originalPrinter = printers.get(printers.size() - 1);
-            //
-        }else{
-            originalPrinter = null;
-        }
-
+        DurationPrinter originalPrinter = printers.size() > 0 ? printers.get(printers.size() - 1) : null;
         if(!(originalPrinter instanceof FieldFormatter f)){
             throw new IllegalStateException("No field to apply suffix to");
         }
 
-        clearPrefix();
+        Preconditions.requireState(prefix == null, "Prefix not followed by field");
         FieldFormatter newField = new FieldFormatter(f, suffix);
-        printers.set(printers.size() - 2, newField);
         printers.set(printers.size() - 1, newField);
         fieldFormatters[newField.getFieldType()] = newField;
-
         return this;
     }
 
@@ -267,14 +255,14 @@ public class DurationFormatBuilder{
     }
 
     private DurationFormatBuilder appendSeparator(String text, String finalText, boolean useBefore, boolean useAfter){
-        clearPrefix();
+        Preconditions.requireState(prefix == null, "Prefix not followed by field");
 
         // optimise zero formatter case
         List<DurationPrinter> pairs = printers;
         if(pairs.isEmpty()){
             if(useAfter && !useBefore){
                 Separator separator = new Separator(text, finalText, Literal.EMPTY, false, true);
-                append0(separator);
+                printers.add(separator);
             }
             return this;
         }
@@ -288,7 +276,6 @@ public class DurationFormatBuilder{
                 pairs = pairs.subList(i + 1, pairs.size());
                 break;
             }
-            i--;  // element pairs
         }
 
         // merge formatters
@@ -302,17 +289,6 @@ public class DurationFormatBuilder{
         return this;
     }
 
-    private void clearPrefix(){
-        if(prefix != null){
-            throw new IllegalStateException("Prefix not followed by field");
-        }
-    }
-
-    private void append0(DurationPrinter printer){
-        printers.add(printer);
-        printers.add(printer);
-    }
-
     private static DurationFormatter toFormatter(List<DurationPrinter> printers){
         int size = printers.size();
         if(size >= 2 && printers.get(0) instanceof Separator sep){
@@ -321,19 +297,16 @@ public class DurationFormatBuilder{
                 return new DurationFormatter(sep.finish(f.getPrinter()));
             }
         }
-        DurationPrinter[] comp = printers.isEmpty()
-                ? new DurationPrinter[]{Literal.EMPTY}
-                : printers.toArray(DurationPrinter[]::new);
-        return new DurationFormatter(comp[0]);
+
+        DurationPrinter formatter = printers.isEmpty() ? Literal.EMPTY : printers.get(0);
+        return new DurationFormatter(formatter);
     }
 
     interface PeriodFieldAffix{
 
         int calculatePrintedLength(int value);
 
-        void printTo(StringBuffer buf, int value);
-
-        void printTo(Writer out, int value) throws IOException;
+        void formatTo(StringBuilder buf, int value);
 
         int parse(String periodStr, int position);
 
@@ -345,11 +318,11 @@ public class DurationFormatBuilder{
     }
 
     static abstract class IgnorableAffix implements PeriodFieldAffix{
-        private volatile String[] iOtherAffixes;
+        private volatile String[] otherAffixes;
 
         @Override
         public void finish(Set<PeriodFieldAffix> periodFieldAffixesToIgnore){
-            if(iOtherAffixes == null){
+            if(otherAffixes == null){
                 // Calculate the shortest affix in this instance.
                 int shortestAffixLength = Integer.MAX_VALUE;
                 String shortestAffix = null;
@@ -374,16 +347,15 @@ public class DurationFormatBuilder{
                         }
                     }
                 }
-                iOtherAffixes = affixesToIgnore.toArray(new String[0]);
+                otherAffixes = affixesToIgnore.toArray(new String[0]);
             }
         }
 
-
         protected boolean matchesOtherAffix(int textLength, String periodStr, int position){
-            if(iOtherAffixes != null){
+            if(otherAffixes != null){
                 // ignore case when affix length differs
                 // match case when affix length is same
-                for(String affixToIgnore : iOtherAffixes){
+                for(String affixToIgnore : otherAffixes){
                     int textToIgnoreLength = affixToIgnore.length();
                     if(textLength < textToIgnoreLength && periodStr.regionMatches(true, position, affixToIgnore, 0, textToIgnoreLength) ||
                             textLength == textToIgnoreLength && periodStr.regionMatches(false, position, affixToIgnore, 0, textToIgnoreLength)){
@@ -408,18 +380,12 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, int value){
+        public void formatTo(StringBuilder buf, int value){
             buf.append(text);
         }
 
         @Override
-        public void printTo(Writer out, int value) throws IOException{
-            out.write(text);
-        }
-
-        @Override
         public int parse(String periodStr, int position){
-            String text = this.text;
             int textLength = text.length();
             if(periodStr.regionMatches(true, position, text, 0, textLength)){
                 if(!matchesOtherAffix(textLength, periodStr, position)){
@@ -431,7 +397,6 @@ public class DurationFormatBuilder{
 
         @Override
         public int scan(String periodStr, final int position){
-            String text = this.text;
             int textLength = text.length();
             int sourceLength = periodStr.length();
             search:
@@ -486,13 +451,8 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, int value){
+        public void formatTo(StringBuilder buf, int value){
             buf.append(value == 1 ? singularText : pluralText);
-        }
-
-        @Override
-        public void printTo(Writer out, int value) throws IOException{
-            out.write(value == 1 ? singularText : pluralText);
         }
 
         @Override
@@ -599,13 +559,8 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, int value){
+        public void formatTo(StringBuilder buf, int value){
             buf.append(suffixes[selectSuffixIndex(value)]);
-        }
-
-        @Override
-        public void printTo(Writer out, int value) throws IOException{
-            out.write(suffixes[selectSuffixIndex(value)]);
         }
 
         @Override
@@ -668,15 +623,9 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, int value){
-            left.printTo(buf, value);
-            right.printTo(buf, value);
-        }
-
-        @Override
-        public void printTo(Writer out, int value) throws IOException{
-            left.printTo(out, value);
-            right.printTo(out, value);
+        public void formatTo(StringBuilder buf, int value){
+            left.formatTo(buf, value);
+            right.formatTo(buf, value);
         }
 
         @Override
@@ -779,7 +728,7 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
+        public int countFieldsToFormat(Duration duration, int stopAt, Locale locale){
             if(stopAt <= 0){
                 return 0;
             }
@@ -790,7 +739,7 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int calculatePrintedLength(Duration duration, Locale locale){
+        public int calculateFormattedLength(Duration duration, Locale locale){
             long valueLong = getFieldValue(duration);
             if(valueLong == Long.MAX_VALUE){
                 return 0;
@@ -810,7 +759,7 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration duration, Locale locale){
+        public void formatTo(StringBuilder buf, Duration duration, Locale locale){
             long valueLong = getFieldValue(duration);
             if(valueLong == Long.MAX_VALUE){
                 return;
@@ -818,7 +767,7 @@ public class DurationFormatBuilder{
             int value = (int)valueLong;
 
             if(prefix != null){
-                prefix.printTo(buf, value);
+                prefix.formatTo(buf, value);
             }
             int minDigits = minPrintedDigits;
             if(minDigits <= 1){
@@ -827,29 +776,7 @@ public class DurationFormatBuilder{
                 appendPaddedInteger(buf, value, minDigits);
             }
             if(suffix != null){
-                suffix.printTo(buf, value);
-            }
-        }
-
-        @Override
-        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
-            long valueLong = getFieldValue(duration);
-            if(valueLong == Long.MAX_VALUE){
-                return;
-            }
-            int value = (int)valueLong;
-
-            if(prefix != null){
-                prefix.printTo(out, value);
-            }
-            int minDigits = minPrintedDigits;
-            if(minDigits <= 1){
-                writeUnpaddedInteger(out, value);
-            }else{
-                writePaddedInteger(out, value, minDigits);
-            }
-            if(suffix != null){
-                suffix.printTo(out, value);
+                suffix.formatTo(buf, value);
             }
         }
 
@@ -857,8 +784,6 @@ public class DurationFormatBuilder{
             long value;
 
             switch(fieldType){
-                default:
-                    return Long.MAX_VALUE;
                 case DAYS:
                     value = duration.toDaysPart();
                     break;
@@ -874,6 +799,8 @@ public class DurationFormatBuilder{
                 case MILLIS:
                     value = duration.toMillisPart();
                     break;
+                default:
+                    return Long.MAX_VALUE;
             }
 
             // determine if duration is zero and this is the last field
@@ -926,23 +853,18 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
+        public int countFieldsToFormat(Duration duration, int stopAt, Locale locale){
             return 0;
         }
 
         @Override
-        public int calculatePrintedLength(Duration duration, Locale locale){
+        public int calculateFormattedLength(Duration duration, Locale locale){
             return text.length();
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration duration, Locale locale){
+        public void formatTo(StringBuilder buf, Duration duration, Locale locale){
             buf.append(text);
-        }
-
-        @Override
-        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
-            out.write(text);
         }
     }
 
@@ -967,26 +889,26 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int countFieldsToPrint(Duration duration, int stopAt, Locale locale){
-            int sum = beforePrinter.countFieldsToPrint(duration, stopAt, locale);
+        public int countFieldsToFormat(Duration duration, int stopAt, Locale locale){
+            int sum = beforePrinter.countFieldsToFormat(duration, stopAt, locale);
             if(sum < stopAt){
-                sum += afterPrinter.countFieldsToPrint(duration, stopAt, locale);
+                sum += afterPrinter.countFieldsToFormat(duration, stopAt, locale);
             }
             return sum;
         }
 
         @Override
-        public int calculatePrintedLength(Duration duration, Locale locale){
+        public int calculateFormattedLength(Duration duration, Locale locale){
             DurationPrinter before = beforePrinter;
             DurationPrinter after = afterPrinter;
 
-            int sum = before.calculatePrintedLength(duration, locale)
-                    + after.calculatePrintedLength(duration, locale);
+            int sum = before.calculateFormattedLength(duration, locale)
+                    + after.calculateFormattedLength(duration, locale);
 
             if(useBefore){
-                if(before.countFieldsToPrint(duration, 1, locale) > 0){
+                if(before.countFieldsToFormat(duration, 1, locale) > 0){
                     if(useAfter){
-                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
+                        int afterCount = after.countFieldsToFormat(duration, 2, locale);
                         if(afterCount > 0){
                             sum += (afterCount > 1 ? text : finalText).length();
                         }
@@ -994,7 +916,7 @@ public class DurationFormatBuilder{
                         sum += text.length();
                     }
                 }
-            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
+            }else if(useAfter && after.countFieldsToFormat(duration, 1, locale) > 0){
                 sum += text.length();
             }
 
@@ -1002,15 +924,15 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public void printTo(StringBuffer buf, Duration duration, Locale locale){
+        public void formatTo(StringBuilder buf, Duration duration, Locale locale){
             DurationPrinter before = beforePrinter;
             DurationPrinter after = afterPrinter;
 
-            before.printTo(buf, duration, locale);
+            before.formatTo(buf, duration, locale);
             if(useBefore){
-                if(before.countFieldsToPrint(duration, 1, locale) > 0){
+                if(before.countFieldsToFormat(duration, 1, locale) > 0){
                     if(useAfter){
-                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
+                        int afterCount = after.countFieldsToFormat(duration, 2, locale);
                         if(afterCount > 0){
                             buf.append(afterCount > 1 ? text : finalText);
                         }
@@ -1018,33 +940,10 @@ public class DurationFormatBuilder{
                         buf.append(text);
                     }
                 }
-            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
+            }else if(useAfter && after.countFieldsToFormat(duration, 1, locale) > 0){
                 buf.append(text);
             }
-            after.printTo(buf, duration, locale);
-        }
-
-        @Override
-        public void printTo(Writer out, Duration duration, Locale locale) throws IOException{
-            DurationPrinter before = beforePrinter;
-            DurationPrinter after = afterPrinter;
-
-            before.printTo(out, duration, locale);
-            if(useBefore){
-                if(before.countFieldsToPrint(duration, 1, locale) > 0){
-                    if(useAfter){
-                        int afterCount = after.countFieldsToPrint(duration, 2, locale);
-                        if(afterCount > 0){
-                            out.write(afterCount > 1 ? text : finalText);
-                        }
-                    }else{
-                        out.write(text);
-                    }
-                }
-            }else if(useAfter && after.countFieldsToPrint(duration, 1, locale) > 0){
-                out.write(text);
-            }
-            after.printTo(out, duration, locale);
+            after.formatTo(buf, duration, locale);
         }
 
         Separator finish(DurationPrinter afterPrinter){
@@ -1053,161 +952,66 @@ public class DurationFormatBuilder{
         }
     }
 
-    static void appendPaddedInteger(StringBuffer buf, int value, int size){
-        try{
-            appendPaddedInteger((Appendable)buf, value, size);
-        }catch(IOException e){
-            // StringBuffer does not throw IOException
-        }
-    }
-
-    static void appendPaddedInteger(Appendable appendable, int value, int size) throws IOException{
+    static void appendPaddedInteger(StringBuilder buf, int value, int size){
         if(value < 0){
-            appendable.append('-');
+            buf.append('-');
             if(value != Integer.MIN_VALUE){
                 value = -value;
             }else{
                 for(; size > 10; size--){
-                    appendable.append('0');
+                    buf.append('0');
                 }
-                appendable.append("" + -(long)Integer.MIN_VALUE);
+                buf.append(-(long)Integer.MIN_VALUE);
                 return;
             }
         }
         if(value < 10){
             for(; size > 1; size--){
-                appendable.append('0');
+                buf.append('0');
             }
-            appendable.append((char)(value + '0'));
+            buf.append((char)(value + '0'));
         }else if(value < 100){
             for(; size > 2; size--){
-                appendable.append('0');
+                buf.append('0');
             }
             // Calculate value div/mod by 10 without using two expensive
             // division operations. (2 ^ 27) / 10 = 13421772. Add one to
             // value to correct rounding error.
-            int d = ((value + 1) * 13421772) >> 27;
-            appendable.append((char)(d + '0'));
+            int d = (value + 1) * 13421772 >> 27;
+            buf.append((char)(d + '0'));
             // Append remainder by calculating (value - d * 10).
-            appendable.append((char)(value - (d << 3) - (d << 1) + '0'));
+            buf.append((char)(value - (d << 3) - (d << 1) + '0'));
         }else{
-            int digits;
-            if(value < 1000){
-                digits = 3;
-            }else if(value < 10000){
-                digits = 4;
-            }else{
-                digits = (int)(Math.log(value) / LOG_10) + 1;
-            }
+            int digits = Mathf.digits(value);
             for(; size > digits; size--){
-                appendable.append('0');
+                buf.append('0');
             }
-            appendable.append(Integer.toString(value));
+            buf.append(value);
         }
     }
 
-    static void writePaddedInteger(Writer out, int value, int size)
-            throws IOException{
+    static void appendUnpaddedInteger(StringBuilder buf, int value){
         if(value < 0){
-            out.write('-');
+            buf.append('-');
             if(value != Integer.MIN_VALUE){
                 value = -value;
             }else{
-                for(; size > 10; size--){
-                    out.write('0');
-                }
-                out.write("" + -(long)Integer.MIN_VALUE);
+                buf.append(-(long)Integer.MIN_VALUE);
                 return;
             }
         }
         if(value < 10){
-            for(; size > 1; size--){
-                out.write('0');
-            }
-            out.write(value + '0');
-        }else if(value < 100){
-            for(; size > 2; size--){
-                out.write('0');
-            }
-            // Calculate value div/mod by 10 without using two expensive
-            // division operations. (2 ^ 27) / 10 = 13421772. Add one to
-            // value to correct rounding error.
-            int d = ((value + 1) * 13421772) >> 27;
-            out.write(d + '0');
-            // Append remainder by calculating (value - d * 10).
-            out.write(value - (d << 3) - (d << 1) + '0');
-        }else{
-            int digits;
-            if(value < 1000){
-                digits = 3;
-            }else if(value < 10000){
-                digits = 4;
-            }else{
-                digits = (int)(Math.log(value) / LOG_10) + 1;
-            }
-            for(; size > digits; size--){
-                out.write('0');
-            }
-            out.write(Integer.toString(value));
-        }
-    }
-
-    static void appendUnpaddedInteger(StringBuffer buf, int value){
-        try{
-            appendUnpaddedInteger((Appendable)buf, value);
-        }catch(IOException e){
-            // StringBuffer do not throw IOException
-        }
-    }
-
-    static void appendUnpaddedInteger(Appendable appendable, int value) throws IOException{
-        if(value < 0){
-            appendable.append('-');
-            if(value != Integer.MIN_VALUE){
-                value = -value;
-            }else{
-                appendable.append("" + -(long)Integer.MIN_VALUE);
-                return;
-            }
-        }
-        if(value < 10){
-            appendable.append((char)(value + '0'));
+            buf.append((char)(value + '0'));
         }else if(value < 100){
             // Calculate value div/mod by 10 without using two expensive
             // division operations. (2 ^ 27) / 10 = 13421772. Add one to
             // value to correct rounding error.
-            int d = ((value + 1) * 13421772) >> 27;
-            appendable.append((char)(d + '0'));
+            int d = (value + 1) * 13421772 >> 27;
+            buf.append((char)(d + '0'));
             // Append remainder by calculating (value - d * 10).
-            appendable.append((char)(value - (d << 3) - (d << 1) + '0'));
+            buf.append((char)(value - (d << 3) - (d << 1) + '0'));
         }else{
-            appendable.append(Integer.toString(value));
-        }
-    }
-
-    static void writeUnpaddedInteger(Writer out, int value)
-            throws IOException{
-        if(value < 0){
-            out.write('-');
-            if(value != Integer.MIN_VALUE){
-                value = -value;
-            }else{
-                out.write("" + -(long)Integer.MIN_VALUE);
-                return;
-            }
-        }
-        if(value < 10){
-            out.write(value + '0');
-        }else if(value < 100){
-            // Calculate value div/mod by 10 without using two expensive
-            // division operations. (2 ^ 27) / 10 = 13421772. Add one to
-            // value to correct rounding error.
-            int d = ((value + 1) * 13421772) >> 27;
-            out.write(d + '0');
-            // Append remainder by calculating (value - d * 10).
-            out.write(value - (d << 3) - (d << 1) + '0');
-        }else{
-            out.write(Integer.toString(value));
+            buf.append(value);
         }
     }
 }

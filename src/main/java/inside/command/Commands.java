@@ -1212,7 +1212,7 @@ public class Commands{
             if(deleteDays > 7){
                 DurationFormatter formatter = DurationFormat.wordBased(env.context().get(KEY_LOCALE));
                 return messageService.err(env, "command.admin.softban.delay-limit",
-                        formatter.print(Duration.ofDays(7)));
+                        formatter.format(Duration.ofDays(7)));
             }
 
             String reason = interaction.getOption(2)
