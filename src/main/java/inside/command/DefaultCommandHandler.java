@@ -68,12 +68,12 @@ public class DefaultCommandHandler implements CommandHandler{
                         messageService.err(environment, "command.response.unknown", str)))
                 .doFirst(() -> messageService.awaitEdit(environment.getMessage().getId())));
 
-        return text.flatMap(TupleUtils.function((commandstr, cmd) -> Mono.justOrEmpty(commandHolder.getCommand(cmd))
+        return text.flatMap(TupleUtils.function((commandstr, cmdkey) -> Mono.justOrEmpty(commandHolder.getCommand(cmdkey))
                 .switchIfEmpty(suggestion.then(Mono.empty()))
                 .flatMap(command -> {
                     CommandInfo info = commandHolder.getCommandInfoMap().get(command);
                     List<CommandOption> result = new ArrayList<>();
-                    String argstr = commandstr.contains(" ") ? commandstr.substring(cmd.length() + 1) : "";
+                    String argstr = commandstr.contains(" ") ? commandstr.substring(cmdkey.length() + 1) : "";
                     int index = 0;
                     boolean satisfied = false;
                     String argsres = info.paramText().isEmpty() ? "command.response.incorrect-arguments.empty" :
@@ -88,7 +88,7 @@ public class DefaultCommandHandler implements CommandHandler{
                             messageService.awaitEdit(environment.getMessage().getId());
                             return prefix.map(GuildConfig::formatPrefix)
                                     .flatMap(str -> messageService.error(environment, "command.response.many-arguments.title",
-                                            argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                                            argsres, str, cmdkey, messageService.get(environment.context(), info.paramText())));
                         }else if(argstr.isEmpty()){
                             break;
                         }
@@ -108,7 +108,7 @@ public class DefaultCommandHandler implements CommandHandler{
                                 messageService.awaitEdit(environment.getMessage().getId());
                                 return prefix.map(GuildConfig::formatPrefix)
                                         .flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
-                                                argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                                                argsres, str, cmdkey, messageService.get(environment.context(), info.paramText())));
                             }
                             result.add(new CommandOption(info.params()[index], argstr));
                             break;
@@ -127,7 +127,7 @@ public class DefaultCommandHandler implements CommandHandler{
                         messageService.awaitEdit(environment.getMessage().getId());
                         return prefix.map(GuildConfig::formatPrefix)
                                 .flatMap(str -> messageService.error(environment, "command.response.few-arguments.title",
-                                        argsres, str, cmd, messageService.get(environment.context(), info.paramText())));
+                                        argsres, str, cmdkey, messageService.get(environment.context(), info.paramText())));
                     }
 
                     Predicate<Throwable> missingAccess = t -> t.getMessage() != null &&
@@ -154,7 +154,7 @@ public class DefaultCommandHandler implements CommandHandler{
 
                     return Mono.just(command)
                             .filterWhen(c -> c.filter(environment))
-                            .flatMap(c -> c.execute(environment, new CommandInteraction(cmd, result)))
+                            .flatMap(c -> c.execute(environment, new CommandInteraction(cmdkey, result)))
                             .doFirst(() -> messageService.removeEdit(environment.getMessage().getId()))
                             .onErrorResume(missingAccess, fallback);
                 })));

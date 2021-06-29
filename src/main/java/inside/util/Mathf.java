@@ -4,8 +4,8 @@ public final class Mathf{
     private static final float FLOAT_ROUNDING_ERROR = 0.000001f;
     private static final int BIG_ENOUGH_INT = 16 * 1024;
     private static final double BIG_ENOUGH_FLOOR = BIG_ENOUGH_INT;
-    private static final double CEIL = 0.9999999;
-    private static final double BIG_ENOUGH_ROUND = BIG_ENOUGH_INT + 0.5f;
+    private static final double CEIL = 0.9999999d;
+    private static final double BIG_ENOUGH_ROUND = BIG_ENOUGH_INT + 0.5d;
 
     public static int digits(int n){
         return n < 100000 ?

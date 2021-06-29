@@ -1396,7 +1396,7 @@ public class InteractionCommands{
                     .map(data -> new Message(env.getClient(), data))
                     .flatMap(message -> env.event().getInteractionResponse()
                             .editFollowupMessage(message.getId().asLong(), WebhookMessageEditRequest.builder()
-                                    .content(messageService.format(env.context(), "command.ping.completed",
+                                    .contentOrNull(messageService.format(env.context(), "command.ping.completed",
                                             System.currentTimeMillis() - start))
                                     .build(), true))
                     .then());
