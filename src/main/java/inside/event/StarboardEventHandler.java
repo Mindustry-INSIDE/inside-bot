@@ -84,14 +84,14 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                     Mono<Message> findIfAbsent = Mono.zip(starboardChannel, event.getMessage(), author)
                             .flatMap(function((channel, source, user) -> channel.getLastMessageId()
                             .map(channel::getMessagesBefore).orElse(Flux.empty())
-                            .take(Duration.ofSeconds(3))
+                            .take(Duration.ofSeconds(4))
                             .filter(m -> m.getEmbeds().size() == 1 && m.getEmbeds().get(0).getFields().size() >= 1)
                             .filter(m -> m.getEmbeds().get(0).getFields().get(0)
                                     .getValue().endsWith(source.getId().asString() + ")")) // match md link
                             .next()
                             .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
                                     .thenReturn(target))))
-                            .timeout(Duration.ofSeconds(5));
+                            .timeout(Duration.ofSeconds(6), Mono.empty());
 
                     Mono<Message> targetMessage = starboard.zipWith(starboardChannel)
                             .flatMap(function((board, channel) -> channel.getMessageById(board.targetMessageId())))
@@ -183,14 +183,14 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                     Mono<Message> findIfAbsent = Mono.zip(starboardChannel, event.getMessage())
                             .flatMap(function((channel, source) -> channel.getLastMessageId()
                                     .map(channel::getMessagesBefore).orElse(Flux.empty())
-                            .take(Duration.ofSeconds(3))
+                            .take(Duration.ofSeconds(4))
                             .filter(m -> m.getEmbeds().size() == 1 && m.getEmbeds().get(0).getFields().size() >= 1)
                             .filter(m -> m.getEmbeds().get(0).getFields().get(0)
                                     .getValue().endsWith(source.getId().asString() + ")")) // match md link
                             .next()
                             .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
                                     .thenReturn(target))))
-                            .timeout(Duration.ofSeconds(5));
+                            .timeout(Duration.ofSeconds(6), Mono.empty());
 
                     Mono<Starboard> starboard = entityRetriever.getStarboardById(guildId, event.getMessageId());
 
