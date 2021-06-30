@@ -1,5 +1,6 @@
 package inside.service.impl;
 
+import discord4j.common.LogUtil;
 import discord4j.common.store.Store;
 import discord4j.common.store.legacy.LegacyStoreLayout;
 import discord4j.common.util.Snowflake;
@@ -9,9 +10,11 @@ import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.shard.MemberRequestFilter;
 import discord4j.discordjson.json.PresenceData;
 import discord4j.gateway.intent.*;
-import discord4j.rest.request.RouteMatcher;
+import discord4j.rest.http.client.ClientException;
+import discord4j.rest.request.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.route.Routes;
+import discord4j.rest.util.RouteUtils;
 import discord4j.store.api.mapping.MappingStoreService;
 import discord4j.store.api.noop.NoOpStoreService;
 import discord4j.store.jdk.JdkStoreService;
@@ -24,6 +27,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Mono;
+import reactor.util.*;
 
 import javax.annotation.*;
 import java.util.*;
@@ -33,6 +37,8 @@ import static reactor.function.TupleUtils.*;
 
 @Service
 public class DiscordServiceImpl implements DiscordService{
+
+    private static final Logger log = Loggers.getLogger("inside.service.ActiveUserMonitor");
 
     private GatewayDiscordClient gateway;
 
@@ -144,6 +150,18 @@ public class DiscordServiceImpl implements DiscordService{
                     }
                     return Mono.empty();
                 }))))
+                .onErrorResume(t -> t instanceof ClientException, t -> {
+                    ClientException c = (ClientException)t;
+                    DiscordWebRequest req = c.getRequest().getDiscordRequest();
+                    String major = RouteUtils.getMajorParam(req.getRoute().getUriTemplate(), req.getCompleteUri());
+                    if(major == null){ // the exception will always start with 'guilds/{guild.id}'
+                        return Mono.error(t);
+                    }
+
+                    return Mono.deferContextual(ctx -> Mono.fromRunnable(() -> log.error(LogUtil.format(ctx, "Missing access"))))
+                            .contextWrite(ctx1 -> ctx1.put(LogUtil.KEY_GUILD_ID, major))
+                            .then(Mono.empty());
+                })
                 .subscribe();
     }
 }

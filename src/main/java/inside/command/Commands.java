@@ -734,6 +734,8 @@ public class Commands{
 
         @SuppressWarnings("unchecked")
         public static <K, V> Map<K, V> mapOf(Object... values){
+            Objects.requireNonNull(values, "values");
+            Preconditions.requireState((values.length & 1) == 0, "length is odd");
             Map<K, V> map = new HashMap<>();
 
             for(int i = 0; i < values.length / 2; ++i){
