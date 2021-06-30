@@ -11,6 +11,8 @@ import reactor.util.context.ContextView;
 
 import java.time.Instant;
 import java.time.format.*;
+import java.util.Collection;
+import java.util.stream.Collectors;
 
 import static inside.audit.Attribute.*;
 import static inside.util.ContextUtil.*;
@@ -207,14 +209,16 @@ public class AuditProviders{
         @Override
         protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
             String url = action.getAttribute(AVATAR_URL);
-            Snowflake roleId = action.getAttribute(ROLE_ID);
-            if(url == null || roleId == null){
+            Collection<Snowflake> roleIds = action.getAttribute(ROLE_IDS);
+            if(url == null || roleIds == null){
                 return;
             }
 
             embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.member.role-add.title",
-                    DiscordUtil.getRoleMention(roleId), getUserReference(context, action.user())));
+                    messageService.getCount(context, "audit.plurals.role", roleIds.size()),
+                    roleIds.stream().map(DiscordUtil::getRoleMention).collect(Collectors.joining(", ")),
+                    getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
         }
     }
@@ -224,14 +228,16 @@ public class AuditProviders{
         @Override
         protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
             String url = action.getAttribute(AVATAR_URL);
-            Snowflake roleId = action.getAttribute(ROLE_ID);
-            if(url == null || roleId == null){
+            Collection<Snowflake> roleIds = action.getAttribute(ROLE_IDS);
+            if(url == null || roleIds == null){
                 return;
             }
 
             embed.setAuthor(formatName(action.user()), null, url);
             embed.setDescription(messageService.format(context, "audit.member.role-remove.title",
-                    DiscordUtil.getRoleMention(roleId), getUserReference(context, action.user())));
+                    messageService.getCount(context, "audit.plurals.role", roleIds.size()),
+                    roleIds.stream().map(DiscordUtil::getRoleMention).collect(Collectors.joining(", ")),
+                    getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
         }
     }

@@ -165,7 +165,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                                 return auditService.newBuilder(guildId, added ? MEMBER_ROLE_ADD : MEMBER_ROLE_REMOVE)
                                         .withUser(member)
                                         .withAttribute(AVATAR_URL, member.getAvatarUrl())
-                                        .withAttribute(ROLE_ID, difference.get(0)) // TODO: check if bulk deletion/addition is possible
+                                        .withAttribute(ROLE_IDS, difference)
                                         .save();
                             });
 

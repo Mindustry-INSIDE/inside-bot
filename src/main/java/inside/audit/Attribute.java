@@ -5,7 +5,7 @@ import discord4j.core.object.reaction.ReactionEmoji;
 import inside.data.entity.base.NamedReference;
 
 import java.time.Instant;
-import java.util.Objects;
+import java.util.*;
 
 public final class Attribute<T>{
 
@@ -31,7 +31,7 @@ public final class Attribute<T>{
 
     public static final Attribute<ReactionEmoji> REACTION_EMOJI = new Attribute<>("reaction_emoji");
 
-    public static final Attribute<Snowflake> ROLE_ID = new Attribute<>("role_id");
+    public static final Attribute<Collection<Snowflake>> ROLE_IDS = new Attribute<>("role_ids");
 
     public static final Attribute<NamedReference> OLD_CHANNEL = new Attribute<>("old_channel");
 
