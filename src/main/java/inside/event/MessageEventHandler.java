@@ -6,7 +6,7 @@ import discord4j.core.event.domain.message.*;
 import discord4j.core.object.Embed.Field;
 import discord4j.core.object.audit.*;
 import discord4j.core.object.entity.*;
-import discord4j.core.object.entity.channel.TextChannel;
+import discord4j.core.object.entity.channel.*;
 import inside.audit.*;
 import inside.command.CommandHandler;
 import inside.command.model.CommandEnvironment;
@@ -20,18 +20,18 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import reactor.core.publisher.*;
 import reactor.util.context.Context;
-import reactor.util.function.Tuples;
 
 import java.time.*;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
+import java.util.function.Predicate;
 
 import static inside.audit.Attribute.*;
 import static inside.audit.AuditActionType.*;
 import static inside.audit.BaseAuditProvider.MESSAGE_TXT;
 import static inside.event.MemberEventHandler.TIMEOUT_MILLIS;
 import static inside.util.ContextUtil.*;
-import static reactor.function.TupleUtils.*;
+import static reactor.function.TupleUtils.function;
 
 @Component
 public class MessageEventHandler extends ReactiveEventAdapter{
@@ -104,15 +104,20 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                 .map(guildConfig -> Context.of(KEY_LOCALE, guildConfig.locale(),
                         KEY_TIMEZONE, guildConfig.timeZone()));
 
-        return initContext.flatMap(context -> Mono.zip(event.getMessage(), event.getChannel().ofType(TextChannel.class))
-                .filter(predicate((message, channel) -> !message.isTts()))
-                .zipWhen(tuple -> tuple.getT1().getAuthorAsMember(),
-                        (tuple, user) -> Tuples.of(tuple.getT1(), tuple.getT2(), user))
-                .filter(predicate((message, channel, member) -> DiscordUtil.isNotBot(member)))
+        Mono<Message> updatedMessage = event.getMessage()
+                .filter(Predicate.not(Message::isTts));
+
+        Mono<GuildMessageChannel> messageChannel = event.getChannel()
+                .ofType(GuildMessageChannel.class);
+
+        Mono<Member> author = updatedMessage.flatMap(Message::getAuthorAsMember)
+                .filter(DiscordUtil::isNotBot);
+
+        return initContext.flatMap(context -> Mono.zip(updatedMessage, messageChannel, author)
                 .flatMap(function((message, channel, member) -> {
                     String newContent = MessageUtil.effectiveContent(message);
                     Mono<MessageInfo> messageInfo = entityRetriever.getMessageInfoById(event.getMessageId())
-                            .switchIfEmpty(Mono.fromSupplier(() -> {
+                            .switchIfEmpty(Mono.fromSupplier(() -> { // create if not stored
                                 MessageInfo info = new MessageInfo();
                                 info.messageId(event.getMessageId());
                                 info.userId(member.getId());

@@ -169,13 +169,28 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                                         .save();
                             });
 
-                            localMember.effectiveName(event.getCurrentNickname().orElse(member.getUsername()));
-                            return entityRetriever.save(localMember).and(logRoleUpdate);
+                            String effectiveName = event.getCurrentNickname().orElse(member.getUsername());
+
+                            Mono<Void> logNicknameUpdate = Mono.defer(() -> {
+                                if(effectiveName.equals(old.getDisplayName())){
+                                    return Mono.empty();
+                                }
+
+                                return auditService.newBuilder(guildId, MEMBER_NICKNAME_UPDATE)
+                                        .withUser(member)
+                                        .withAttribute(AVATAR_URL, member.getAvatarUrl())
+                                        .withAttribute(OLD_NICKNAME, old.getDisplayName())
+                                        .withAttribute(NEW_NICKNAME, effectiveName)
+                                        .save();
+                            });
+
+                            localMember.effectiveName(effectiveName);
+                            return Mono.when(entityRetriever.save(localMember), logRoleUpdate, logNicknameUpdate);
                         })).contextWrite(context));
     }
 
     @Override
-    public Publisher<?> onGuildDelete(GuildDeleteEvent event){
+    public Publisher<?> onGuildDelete(GuildDeleteEvent event){ // remove all content associated with this guild id
         Snowflake guildId = event.getGuildId();
         return entityRetriever.deleteAllStarboardsInGuild(guildId)
                 .and(entityRetriever.deleteAllEmojiDispenserInGuild(guildId))

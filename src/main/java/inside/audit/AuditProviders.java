@@ -237,7 +237,7 @@ public class AuditProviders{
     }
 
     @ForwardAuditProvider(AuditActionType.MEMBER_AVATAR_UPDATE)
-    public static class MemberUpdateAuditProvider extends BaseAuditProvider{
+    public static class MemberAvatarUpdateAuditProvider extends BaseAuditProvider{
         @Override
         protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
             String url = action.getAttribute(AVATAR_URL);
@@ -247,9 +247,28 @@ public class AuditProviders{
             }
 
             embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.member.update-avatar.title",
+            embed.setDescription(messageService.format(context, "audit.member.avatar-update.title",
                     getUserReference(context, action.user())));
             embed.setThumbnail(oldUrl);
+            addTimestamp(context, action, embed);
+        }
+    }
+
+    @ForwardAuditProvider(AuditActionType.MEMBER_NICKNAME_UPDATE)
+    public static class MemberNicknameUpdate extends BaseAuditProvider{
+        @Override
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+            String url = action.getAttribute(AVATAR_URL);
+            String oldNickname = action.getAttribute(OLD_NICKNAME);
+            String newNickname = action.getAttribute(NEW_NICKNAME);
+            if(url == null || oldNickname == null || newNickname == null){
+                return;
+            }
+
+            embed.setAuthor(formatName(action.user()), null, url);
+            embed.setDescription(messageService.format(context, "audit.member.nickname-update.title",
+                    getUserReference(context, action.user()),
+                    oldNickname, newNickname));
             addTimestamp(context, action, embed);
         }
     }

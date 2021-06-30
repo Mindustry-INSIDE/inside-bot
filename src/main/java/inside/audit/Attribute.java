@@ -21,6 +21,10 @@ public final class Attribute<T>{
 
     public static final Attribute<String> OLD_AVATAR_URL = new Attribute<>("old_avatar_url");
 
+    public static final Attribute<String> OLD_NICKNAME = new Attribute<>("old_nickname");
+
+    public static final Attribute<String> NEW_NICKNAME = new Attribute<>("new_nickname");
+
     public static final Attribute<Snowflake> MESSAGE_ID = new Attribute<>("message_id");
 
     public static final Attribute<Long> COUNT = new Attribute<>("count");
