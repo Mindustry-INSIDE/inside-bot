@@ -67,9 +67,7 @@ public class Commands{
 
         @Override
         public Mono<Boolean> filter(CommandEnvironment env){
-            return adminService.isAdmin(env.getAuthorAsMember())
-                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env,
-                            "common.permission-denied").thenReturn(false));
+            return adminService.isAdmin(env.getAuthorAsMember());
         }
     }
 
