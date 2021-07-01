@@ -2,7 +2,7 @@ package inside.service.impl;
 
 import com.github.benmanes.caffeine.cache.*;
 import discord4j.common.util.Snowflake;
-import discord4j.core.event.domain.InteractionCreateEvent;
+import discord4j.core.event.domain.interaction.InteractionCreateEvent;
 import discord4j.core.object.entity.channel.MessageChannel;
 import discord4j.core.spec.*;
 import discord4j.rest.util.AllowedMentions;
@@ -226,6 +226,7 @@ public class MessageServiceImpl implements MessageService{
     @Override
     public Mono<Void> error(InteractionCreateEvent event, String title, String text, Object... args){
         return Mono.deferContextual(ctx -> event.reply(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
+                .setEphemeral(ctx.<Boolean>getOrEmpty(KEY_EPHEMERAL).orElse(false))
                 .addEmbed(embed -> embed.setColor(settings.getDefaults().getErrorColor())
                         .setDescription(format(ctx, text, args))
                         .setTitle(get(ctx, title)))));

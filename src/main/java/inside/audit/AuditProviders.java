@@ -21,6 +21,8 @@ public class AuditProviders{
 
     private AuditProviders(){}
 
+    //region message
+
     @ForwardAuditProvider(AuditActionType.MESSAGE_EDIT)
     public static class MessageEditAuditProvider extends BaseAuditProvider{
         @Override
@@ -104,6 +106,9 @@ public class AuditProviders{
             addTimestamp(context, action, embed);
         }
     }
+
+    //endregion
+    //region moderation
 
     @ForwardAuditProvider(AuditActionType.MEMBER_JOIN)
     public static class MemberJoinAuditProvider extends BaseAuditProvider{
@@ -204,6 +209,9 @@ public class AuditProviders{
         }
     }
 
+    //endregion
+    //region member
+
     @ForwardAuditProvider(AuditActionType.MEMBER_ROLE_ADD)
     public static class MemberRoleAddAuditProvider extends BaseAuditProvider{
         @Override
@@ -279,6 +287,9 @@ public class AuditProviders{
         }
     }
 
+    //endregion
+    //region reaction
+
     @ForwardAuditProvider(AuditActionType.REACTION_ADD)
     public static class ReactionAddAuditProvider extends BaseAuditProvider{
         @Override
@@ -331,6 +342,9 @@ public class AuditProviders{
         }
     }
 
+    //endregion
+    //region voice
+
     @ForwardAuditProvider(AuditActionType.VOICE_JOIN)
     public static class VoiceJoinAuditProvider extends BaseAuditProvider{
         @Override
@@ -367,4 +381,6 @@ public class AuditProviders{
             addTimestamp(context, action, embed);
         }
     }
+
+    //endregion
 }

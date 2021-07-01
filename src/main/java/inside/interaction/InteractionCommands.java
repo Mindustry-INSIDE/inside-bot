@@ -44,7 +44,7 @@ public class InteractionCommands{
         @Override
         public Mono<Boolean> filter(InteractionCommandEnvironment env){
             if(env.event().getInteraction().getMember().isEmpty()){
-                return messageService.err(env.event(), "command.interaction.only-guild")
+                return messageService.text(env.event(), "command.interaction.only-guild")
                         .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false);
             }
             return Mono.just(true);
@@ -60,7 +60,7 @@ public class InteractionCommands{
             Mono<Boolean> isAdmin = env.event().getInteraction().getMember()
                     .map(adminService::isAdmin)
                     .orElse(Mono.just(false))
-                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(), "common.permission-denied")
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.text(env.event(), "common.permission-denied")
                             .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false));
 
             return and(super.filter(env), isAdmin);
@@ -82,12 +82,14 @@ public class InteractionCommands{
                     .map(role -> role.getPermissions().contains(Permission.MANAGE_GUILD));
 
             Mono<Boolean> resp = or(isOwner, isGuildManager)
-                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.err(env.event(), "command.owner-only")
+                    .filterWhen(bool -> bool ? Mono.just(true) : messageService.text(env.event(), "command.owner-only")
                             .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).thenReturn(false));
 
             return and(super.filter(env), resp);
         }
     }
+
+    //region owner
 
     @InteractionDiscordCommand
     public static class SettingsCommand extends OwnerCommand{
@@ -102,8 +104,7 @@ public class InteractionCommands{
             Function<Duration, String> formatDuration = duration ->
                     DurationFormat.wordBased(env.context().get(KEY_LOCALE)).format(duration);
 
-            Mono<Void> handleStarboard = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
-                    .getOption("starboard"))
+            Mono<Void> handleStarboard = Mono.justOrEmpty(env.event().getOption("starboard"))
                     .zipWith(entityRetriever.getStarboardConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createStarboardConfig(guildId)))
                     .flatMap(function((group, starboardConfig) -> {
@@ -249,8 +250,7 @@ public class InteractionCommands{
                                 });
                     }));
 
-            Mono<Void> handleActivities = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
-                    .getOption("activities"))
+            Mono<Void> handleActivities = Mono.justOrEmpty(env.event().getOption("activities"))
                     .switchIfEmpty(handleStarboard.then(Mono.empty()))
                     .zipWith(entityRetriever.getActiveUserConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createActiveUserConfig(guildId)))
@@ -326,8 +326,7 @@ public class InteractionCommands{
                                 });
                     }));
 
-            Mono<Void> handleAdmin = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
-                    .getOption("admin"))
+            Mono<Void> handleAdmin = Mono.justOrEmpty(env.event().getOption("admin"))
                     .switchIfEmpty(handleActivities.then(Mono.empty()))
                     .zipWith(entityRetriever.getAdminConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createAdminConfig(guildId)))
@@ -474,8 +473,7 @@ public class InteractionCommands{
                                 });
                     }));
 
-            Mono<Void> handleAudit = Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
-                    .getOption("audit"))
+            Mono<Void> handleAudit = Mono.justOrEmpty(env.event().getOption("audit"))
                     .switchIfEmpty(handleAdmin.then(Mono.empty()))
                     .zipWith(entityRetriever.getAuditConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createAuditConfig(guildId)))
@@ -581,8 +579,7 @@ public class InteractionCommands{
                                 });
                     }));
 
-            return Mono.justOrEmpty(env.event().getInteraction().getCommandInteraction()
-                    .getOption("common"))
+            return Mono.justOrEmpty(env.event().getOption("common"))
                     .switchIfEmpty(handleAudit.then(Mono.empty()))
                     .zipWith(entityRetriever.getGuildConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createGuildConfig(guildId)))
@@ -1138,136 +1135,8 @@ public class InteractionCommands{
         }
     }
 
-    @InteractionDiscordCommand
-    public static class TextLayoutCommand extends InteractionCommand{
-        @Override
-        public Mono<Void> execute(InteractionCommandEnvironment env){
-            boolean russian = env.event().getInteraction().getCommandInteraction()
-                    .getOption("type")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .map("ru"::equals)
-                    .orElse(false);
-
-            String text = env.event().getInteraction().getCommandInteraction()
-                    .getOption("text")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .map(str -> russian ? Commands.TextLayoutCommand.text2eng(str) : Commands.TextLayoutCommand.text2rus(str))
-                    .orElse(MessageService.placeholder);
-
-            return env.event().reply(text);
-        }
-
-        @Override
-        public ApplicationCommandRequest getRequest(){
-            return ApplicationCommandRequest.builder()
-                    .name("r")
-                    .description("Change text layout.")
-                    .addOption(ApplicationCommandOptionData.builder()
-                            .name("type")
-                            .description("Text layout type")
-                            .type(ApplicationCommandOptionType.STRING.getValue())
-                            .required(true)
-                            .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                    .name("English layout")
-                                    .value("en")
-                                    .build())
-                            .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                    .name("Russian layout")
-                                    .value("ru")
-                                    .build())
-                            .build())
-                    .addOption(ApplicationCommandOptionData.builder()
-                            .name("text")
-                            .description("Target text")
-                            .type(ApplicationCommandOptionType.STRING.getValue())
-                            .required(true)
-                            .build())
-                    .build();
-        }
-    }
-
-    @InteractionDiscordCommand
-    public static class LeetSpeakCommand extends InteractionCommand{
-        @Override
-        public Mono<Void> execute(InteractionCommandEnvironment env){
-            boolean russian = env.event().getInteraction().getCommandInteraction()
-                    .getOption("type")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .map("ru"::equals)
-                    .orElse(false);
-
-            String text = env.event().getInteraction().getCommandInteraction()
-                    .getOption("text")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .map(str -> Commands.LeetSpeakCommand.leeted(str, russian))
-                    .filter(str -> !str.isBlank())
-                    .orElse(MessageService.placeholder);
-
-            return env.event().reply(text);
-        }
-
-        @Override
-        public ApplicationCommandRequest getRequest(){
-            return ApplicationCommandRequest.builder()
-                    .name("1337")
-                    .description("Translate text into leet speak.")
-                    .addOption(ApplicationCommandOptionData.builder()
-                            .name("type")
-                            .description("Leet speak type")
-                            .type(ApplicationCommandOptionType.STRING.getValue())
-                            .required(true)
-                            .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                    .name("English leet")
-                                    .value("en")
-                                    .build())
-                            .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                    .name("Russian leet")
-                                    .value("ru")
-                                    .build())
-                            .build())
-                    .addOption(ApplicationCommandOptionData.builder()
-                            .name("text")
-                            .description("Target text")
-                            .type(ApplicationCommandOptionType.STRING.getValue())
-                            .required(true)
-                            .build())
-                    .build();
-        }
-    }
-
-    @InteractionDiscordCommand
-    public static class TransliterationCommand extends InteractionCommand{
-        @Override
-        public Mono<Void> execute(InteractionCommandEnvironment env){
-            String text = env.event().getInteraction().getCommandInteraction()
-                    .getOption("text")
-                    .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asString)
-                    .map(Commands.TransliterationCommand::translit)
-                    .filter(str -> !str.isBlank())
-                    .orElse(MessageService.placeholder);
-
-            return env.event().reply(text);
-        }
-
-        @Override
-        public ApplicationCommandRequest getRequest(){
-            return ApplicationCommandRequest.builder()
-                    .name("tr")
-                    .description("Translating text into transliteration.")
-                    .addOption(ApplicationCommandOptionData.builder()
-                            .name("text")
-                            .description("Translation text")
-                            .type(ApplicationCommandOptionType.STRING.getValue())
-                            .required(true)
-                            .build())
-                    .build();
-        }
-    }
+    //endregion
+    //region admin
 
     @InteractionDiscordCommand
     public static class DeleteCommand extends AdminCommand{
@@ -1281,8 +1150,7 @@ public class InteractionCommands{
 
             Mono<TextChannel> reply = env.getReplyChannel().cast(TextChannel.class);
 
-            long number = env.event().getInteraction().getCommandInteraction()
-                    .getOption("count")
+            long number = env.event().getOption("count")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asLong)
                     .orElse(0L);
@@ -1357,12 +1225,143 @@ public class InteractionCommands{
         }
     }
 
+    //endregion
+    //region text util
+
+    @InteractionDiscordCommand
+    public static class TextLayoutCommand extends InteractionCommand{
+        @Override
+        public Mono<Void> execute(InteractionCommandEnvironment env){
+            boolean russian = env.event().getOption("type")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .map("ru"::equals)
+                    .orElse(false);
+
+            String text = env.event().getOption("text")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .map(str -> russian ? Commands.TextLayoutCommand.text2eng(str) : Commands.TextLayoutCommand.text2rus(str))
+                    .orElse(MessageService.placeholder);
+
+            return env.event().reply(text);
+        }
+
+        @Override
+        public ApplicationCommandRequest getRequest(){
+            return ApplicationCommandRequest.builder()
+                    .name("r")
+                    .description("Change text layout.")
+                    .addOption(ApplicationCommandOptionData.builder()
+                            .name("type")
+                            .description("Text layout type")
+                            .type(ApplicationCommandOptionType.STRING.getValue())
+                            .required(true)
+                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                    .name("English layout")
+                                    .value("en")
+                                    .build())
+                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                    .name("Russian layout")
+                                    .value("ru")
+                                    .build())
+                            .build())
+                    .addOption(ApplicationCommandOptionData.builder()
+                            .name("text")
+                            .description("Target text")
+                            .type(ApplicationCommandOptionType.STRING.getValue())
+                            .required(true)
+                            .build())
+                    .build();
+        }
+    }
+
+    @InteractionDiscordCommand
+    public static class LeetSpeakCommand extends InteractionCommand{
+        @Override
+        public Mono<Void> execute(InteractionCommandEnvironment env){
+            boolean russian = env.event().getOption("type")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .map("ru"::equals)
+                    .orElse(false);
+
+            String text = env.event().getOption("text")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .map(str -> Commands.LeetSpeakCommand.leeted(str, russian))
+                    .filter(str -> !str.isBlank())
+                    .orElse(MessageService.placeholder);
+
+            return env.event().reply(text);
+        }
+
+        @Override
+        public ApplicationCommandRequest getRequest(){
+            return ApplicationCommandRequest.builder()
+                    .name("1337")
+                    .description("Translate text into leet speak.")
+                    .addOption(ApplicationCommandOptionData.builder()
+                            .name("type")
+                            .description("Leet speak type")
+                            .type(ApplicationCommandOptionType.STRING.getValue())
+                            .required(true)
+                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                    .name("English leet")
+                                    .value("en")
+                                    .build())
+                            .addChoice(ApplicationCommandOptionChoiceData.builder()
+                                    .name("Russian leet")
+                                    .value("ru")
+                                    .build())
+                            .build())
+                    .addOption(ApplicationCommandOptionData.builder()
+                            .name("text")
+                            .description("Target text")
+                            .type(ApplicationCommandOptionType.STRING.getValue())
+                            .required(true)
+                            .build())
+                    .build();
+        }
+    }
+
+    @InteractionDiscordCommand
+    public static class TransliterationCommand extends InteractionCommand{
+        @Override
+        public Mono<Void> execute(InteractionCommandEnvironment env){
+            String text = env.event().getOption("text")
+                    .flatMap(ApplicationCommandInteractionOption::getValue)
+                    .map(ApplicationCommandInteractionOptionValue::asString)
+                    .map(Commands.TransliterationCommand::translit)
+                    .filter(str -> !str.isBlank())
+                    .orElse(MessageService.placeholder);
+
+            return env.event().reply(text);
+        }
+
+        @Override
+        public ApplicationCommandRequest getRequest(){
+            return ApplicationCommandRequest.builder()
+                    .name("tr")
+                    .description("Translating text into transliteration.")
+                    .addOption(ApplicationCommandOptionData.builder()
+                            .name("text")
+                            .description("Translation text")
+                            .type(ApplicationCommandOptionType.STRING.getValue())
+                            .required(true)
+                            .build())
+                    .build();
+        }
+    }
+
+    //endregion
+    //region misc
+
     @InteractionDiscordCommand
     public static class AvatarCommand extends InteractionCommand{
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
-            return env.event().getInteraction().getCommandInteraction()
-                    .getOption("target")
+            return env.event().getOption("target")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asUser)
                     .orElse(Mono.just(env.event().getInteraction().getUser()))
@@ -1416,6 +1415,7 @@ public class InteractionCommands{
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
             String expression = env.event().getInteraction().getCommandInteraction()
+                    .orElseThrow(IllegalStateException::new)
                     .getOption("expression")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asString)
@@ -1442,4 +1442,6 @@ public class InteractionCommands{
                     .build();
         }
     }
+
+    //endregion
 }

@@ -1,7 +1,7 @@
 package inside.event;
 
 import discord4j.core.event.ReactiveEventAdapter;
-import discord4j.core.event.domain.InteractionCreateEvent;
+import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import inside.Settings;
 import inside.data.service.EntityRetriever;
 import inside.interaction.InteractionCommandEnvironment;
@@ -29,7 +29,7 @@ public class InteractionEventHandler extends ReactiveEventAdapter{
     private DiscordService discordService;
 
     @Override
-    public Publisher<?> onInteractionCreate(InteractionCreateEvent event){
+    public Publisher<?> onSlashCommand(SlashCommandEvent event){
         Mono<Context> initContext = Mono.justOrEmpty(event.getInteraction().getGuildId())
                 .flatMap(guildId -> entityRetriever.getGuildConfigById(guildId)
                         .switchIfEmpty(entityRetriever.createGuildConfig(guildId)))

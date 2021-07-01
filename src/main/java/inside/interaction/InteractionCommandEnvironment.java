@@ -1,18 +1,18 @@
 package inside.interaction;
 
 import discord4j.core.GatewayDiscordClient;
-import discord4j.core.event.domain.InteractionCreateEvent;
+import discord4j.core.event.domain.interaction.SlashCommandEvent;
 import discord4j.core.object.entity.channel.MessageChannel;
 import org.immutables.builder.Builder;
 import reactor.core.publisher.Mono;
 import reactor.util.context.ContextView;
 
 public class InteractionCommandEnvironment{
-    private final InteractionCreateEvent event;
+    private final SlashCommandEvent event;
     private final ContextView context;
 
     @Builder.Constructor
-    protected InteractionCommandEnvironment(InteractionCreateEvent event, ContextView context){
+    protected InteractionCommandEnvironment(SlashCommandEvent event, ContextView context){
         this.event = event;
         this.context = context;
     }
@@ -21,7 +21,7 @@ public class InteractionCommandEnvironment{
         return new InteractionCommandEnvironmentBuilder();
     }
 
-    public InteractionCreateEvent event(){
+    public SlashCommandEvent event(){
         return event;
     }
 
