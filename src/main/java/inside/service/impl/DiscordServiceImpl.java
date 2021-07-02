@@ -69,8 +69,6 @@ public class DiscordServiceImpl implements DiscordService{
                 .setMemberRequestFilter(MemberRequestFilter.all())
                 .setStore(Store.fromLayout(LegacyStoreLayout.of(MappingStoreService.create()
                         .setMapping(new NoOpStoreService(), PresenceData.class)
-                        // .setMapping(new CaffeineStoreService(caffeine -> caffeine.weakKeys()
-                        //         .expireAfterWrite(Duration.ofDays(3))), MessageData.class)
                         .setFallback(new JdkStoreService()))))
                 .setEnabledIntents(IntentSet.of(
                         Intent.GUILDS,

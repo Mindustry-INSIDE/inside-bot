@@ -71,6 +71,21 @@ public class Commands{
         }
     }
 
+    public static abstract class OwnerCommand extends Command{
+        @Override
+        public Mono<Boolean> filter(CommandEnvironment env){
+            Member member = env.getAuthorAsMember();
+
+            Mono<Boolean> isOwner = member.getGuild().flatMap(Guild::getOwner)
+                    .map(member::equals);
+
+            Mono<Boolean> isGuildManager = member.getHighestRole()
+                    .map(role -> role.getPermissions().contains(Permission.MANAGE_GUILD));
+
+            return BooleanUtils.or(isOwner, isGuildManager);
+        }
+    }
+
     public static abstract class VoiceCommand extends Command{
         @Autowired
         protected VoiceService voiceService;
@@ -513,7 +528,7 @@ public class Commands{
         @SuppressWarnings("unchecked")
         public static <K, V> Map<K, V> mapOf(Object... values){
             Objects.requireNonNull(values, "values");
-            Preconditions.requireState((values.length & 1) == 0, "length is odd");
+            Preconditions.requireArgument((values.length & 1) == 0, "length is odd");
             Map<K, V> map = new HashMap<>();
 
             for(int i = 0; i < values.length / 2; ++i){
@@ -835,9 +850,8 @@ public class Commands{
             return env.getReplyChannel().flatMap(reply -> reply.createMessage(spec -> spec.setContent(messageService.format(env.context(),
                     "command.qpoll.text", env.getAuthorAsMember().getUsername(), text))
                     .setAllowedMentions(AllowedMentions.suppressAll())))
-                    .flatMap(message1 -> message1.addReaction(up).thenReturn(message1))
-                    .flatMap(message1 -> message1.addReaction(down))
-                    .then();
+                    .flatMap(message1 -> message1.addReaction(up)
+                            .and(message1.addReaction(down)));
         }
 
         @Override
@@ -890,10 +904,7 @@ public class Commands{
     //region settings
 
     @DiscordCommand(key = "prefix", params = "command.settings.prefix.params", description = "command.settings.prefix.description")
-    public static class PrefixCommand extends Command{
-        @Autowired
-        private AdminService adminService;
-
+    public static class PrefixCommand extends OwnerCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member member = env.getAuthorAsMember();
@@ -912,8 +923,6 @@ public class Commands{
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
-                    .filterWhen(ignored -> adminService.isAdmin(member))
-                    .switchIfEmpty(messageService.err(env, "command.owner-only").then(Mono.empty()))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         List<String> prefixes = guildConfig.prefixes();
                         if(add){
@@ -927,10 +936,7 @@ public class Commands{
     }
 
     @DiscordCommand(key = "timezone", params = "command.settings.timezone.params", description = "command.settings.timezone.description")
-    public static class TimezoneCommand extends Command{
-        @Autowired
-        private AdminService adminService;
-
+    public static class TimezoneCommand extends OwnerCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member member = env.getAuthorAsMember();
@@ -950,7 +956,7 @@ public class Commands{
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
-                    .filterWhen(guildConfig -> adminService.isAdmin(member).map(bool -> bool && present))
+                    .filter(ignored -> present)
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(timeZone == null){
                             return ZoneId.getAvailableZoneIds().stream()
@@ -965,19 +971,14 @@ public class Commands{
                                 .contextWrite(ctx -> ctx.put(KEY_TIMEZONE, timeZone))
                                 .and(entityRetriever.save(guildConfig));
                     }).thenReturn(guildConfig))
-                    .switchIfEmpty(present ?
-                            messageService.err(env, "command.owner-only").then(Mono.empty()) :
-                            messageService.text(env, "command.settings.timezone.current",
-                                    env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
+                    .switchIfEmpty(messageService.text(env, "command.settings.timezone.current",
+                            env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
                     .then();
         }
     }
 
     @DiscordCommand(key = "locale", params = "command.settings.locale.params", description = "command.settings.locale.description")
-    public static class LocaleCommand extends Command{
-        @Autowired
-        private AdminService adminService;
-
+    public static class LocaleCommand extends OwnerCommand{
         @Override
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member member = env.getAuthorAsMember();
@@ -992,7 +993,7 @@ public class Commands{
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
-                    .filterWhen(guildConfig -> adminService.isOwner(member).map(bool -> bool && present))
+                    .filter(guildConfig -> present)
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(locale == null){
                             String all = messageService.getSupportedLocales().values().stream()
@@ -1008,10 +1009,8 @@ public class Commands{
                                 .contextWrite(ctx -> ctx.put(KEY_LOCALE, locale))
                                 .and(entityRetriever.save(guildConfig));
                     }).thenReturn(guildConfig))
-                    .switchIfEmpty(present ?
-                            messageService.err(env, "command.owner-only").then(Mono.empty()) :
-                            messageService.text(env, "command.settings.locale.current",
-                                    env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
+                    .switchIfEmpty(messageService.text(env, "command.settings.locale.current",
+                            env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
                     .then();
         }
     }

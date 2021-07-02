@@ -14,6 +14,8 @@ public class DurationFormatterTest{
 
     private static final Duration all = Duration.ofDays(1).plusHours(1).plusMinutes(1).plusSeconds(1).plusMillis(1);
 
+    //region english
+
     @Test
     public void defaultFormatSingle(){
         var printer = DurationFormat.getDefault();
@@ -43,7 +45,8 @@ public class DurationFormatterTest{
         assertEquals("1 day, 1 hour, 1 minute, 1 second and 1 millisecond", printer.format(all));
     }
 
-    // ru region
+    //endregion
+    //region russian
 
     @Test
     public void russianWordFormatSingle(){
@@ -73,4 +76,6 @@ public class DurationFormatterTest{
 
         assertEquals("1 день, 1 час, 1 минута, 1 секунда и 1 миллисекунда", printer.format(all));
     }
+
+    //endregion
 }
