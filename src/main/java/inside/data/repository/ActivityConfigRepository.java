@@ -1,10 +1,10 @@
 package inside.data.repository;
 
-import inside.data.entity.ActiveUserConfig;
+import inside.data.entity.ActivityConfig;
 import inside.data.repository.base.GuildRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface ActiveUserConfigRepository extends GuildRepository<ActiveUserConfig>{
+public interface ActivityConfigRepository extends GuildRepository<ActivityConfig>{
 
 }

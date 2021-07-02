@@ -72,7 +72,7 @@ public class EntityRetrieverImpl implements EntityRetriever{
     @Override
     public Mono<Void> deleteAdminConfigById(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
-        return storeHolder.getActiveUserConfigService().delete(guildId.asLong());
+        return storeHolder.getActivityConfigService().delete(guildId.asLong());
     }
 
     @Override
@@ -208,21 +208,21 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
-    public Mono<ActiveUserConfig> getActiveUserConfigById(Snowflake guildId){
+    public Mono<ActivityConfig> getActivityConfigById(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
-        return storeHolder.getActiveUserConfigService().find(guildId.asLong());
+        return storeHolder.getActivityConfigService().find(guildId.asLong());
     }
 
     @Override
-    public Mono<Void> save(ActiveUserConfig activeUserConfig){
-        Objects.requireNonNull(activeUserConfig, "activeUserConfig");
-        return storeHolder.getActiveUserConfigService().save(activeUserConfig);
+    public Mono<Void> save(ActivityConfig activityConfig){
+        Objects.requireNonNull(activityConfig, "activeUserConfig");
+        return storeHolder.getActivityConfigService().save(activityConfig);
     }
 
     @Override
-    public Mono<Void> deleteActiveUserConfigById(Snowflake guildId){
+    public Mono<Void> deleteActivityConfigById(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
-        return storeHolder.getActiveUserConfigService().delete(guildId.asLong());
+        return storeHolder.getActivityConfigService().delete(guildId.asLong());
     }
 
     @Override
@@ -354,14 +354,14 @@ public class EntityRetrieverImpl implements EntityRetriever{
     }
 
     @Override
-    public Mono<ActiveUserConfig> createActiveUserConfig(Snowflake guildId){
+    public Mono<ActivityConfig> createActiveUserConfig(Snowflake guildId){
         Objects.requireNonNull(guildId, "guildId");
         return Mono.defer(() -> {
-            ActiveUserConfig activeUserConfig = new ActiveUserConfig();
-            activeUserConfig.guildId(guildId);
-            activeUserConfig.keepCountingDuration(settings.getDefaults().getActiveUserKeepCountingDuration());
-            activeUserConfig.messageBarrier(settings.getDefaults().getActiveUserMessageBarrier());
-            return save(activeUserConfig).thenReturn(activeUserConfig);
+            ActivityConfig activityConfig = new ActivityConfig();
+            activityConfig.guildId(guildId);
+            activityConfig.keepCountingDuration(settings.getDefaults().getActiveUserKeepCountingDuration());
+            activityConfig.messageBarrier(settings.getDefaults().getActiveUserMessageBarrier());
+            return save(activityConfig).thenReturn(activityConfig);
         });
     }
 

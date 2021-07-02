@@ -199,7 +199,7 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                 .and(entityRetriever.deleteAuditConfigById(guildId))
                 .and(entityRetriever.deleteGuildConfigById(guildId))
                 .and(entityRetriever.deleteAdminConfigById(guildId))
-                .and(entityRetriever.deleteActiveUserConfigById(guildId))
+                .and(entityRetriever.deleteActivityConfigById(guildId))
                 .and(entityRetriever.deleteStarboardConfigById(guildId));
     }
 }

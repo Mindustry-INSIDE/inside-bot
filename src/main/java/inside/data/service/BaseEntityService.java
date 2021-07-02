@@ -13,8 +13,6 @@ public abstract class BaseEntityService<K, V extends BaseEntity, R extends BaseR
 
     protected final Settings settings;
 
-    protected final Object lock = new Object();
-
     protected BaseEntityService(R repository, Settings settings){
         this.repository = repository;
         this.settings = settings;
@@ -22,16 +20,7 @@ public abstract class BaseEntityService<K, V extends BaseEntity, R extends BaseR
 
     @Override
     public Mono<V> find(K id){
-        return Mono.defer(() -> {
-            var entity = find0(id);
-            if(entity == null){
-                synchronized(lock){
-                    entity = find0(id);
-                }
-            }
-
-            return Mono.justOrEmpty(entity);
-        });
+        return Mono.defer(() -> Mono.justOrEmpty(find0(id)));
     }
 
     @Override

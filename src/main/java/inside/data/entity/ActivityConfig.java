@@ -9,8 +9,8 @@ import java.time.*;
 import java.util.*;
 
 @Entity
-@Table(name = "active_user_config")
-public class ActiveUserConfig extends ConfigEntity{
+@Table(name = "activity_config")
+public class ActivityConfig extends ConfigEntity{
     @Serial
     private static final long serialVersionUID = -3848703477201041407L;
 
@@ -68,7 +68,7 @@ public class ActiveUserConfig extends ConfigEntity{
 
     @Override
     public String toString(){
-        return "ActiveUserConfig{" +
+        return "ActivityConfig{" +
                 "keepCountingDuration=" + keepCountingDuration +
                 ", messageBarrier=" + messageBarrier +
                 ", roleId='" + roleId + '\'' +

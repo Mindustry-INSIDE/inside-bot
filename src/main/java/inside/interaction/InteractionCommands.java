@@ -252,15 +252,15 @@ public class InteractionCommands{
 
             Mono<Void> handleActivities = Mono.justOrEmpty(env.event().getOption("activities"))
                     .switchIfEmpty(handleStarboard.then(Mono.empty()))
-                    .zipWith(entityRetriever.getActiveUserConfigById(guildId)
+                    .zipWith(entityRetriever.getActivityConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createActiveUserConfig(guildId)))
-                    .flatMap(function((group, activeUserConfig) -> {
+                    .flatMap(function((group, activityConfig) -> {
                         Mono<Void> keepCountingPeriodCommand = Mono.justOrEmpty(group.getOption("delay"))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asString)
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.keep-counting-duration.current",
-                                        formatDuration.apply(activeUserConfig.keepCountingDuration())).then(Mono.empty()))
+                                        formatDuration.apply(activityConfig.keepCountingDuration())).then(Mono.empty()))
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
                                     if(duration == null){
@@ -268,17 +268,17 @@ public class InteractionCommands{
                                                 .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
-                                    activeUserConfig.keepCountingDuration(duration);
+                                    activityConfig.keepCountingDuration(duration);
                                     return messageService.text(env.event(), "command.settings.keep-counting-duration.update",
                                             formatDuration.apply(duration))
-                                            .and(entityRetriever.save(activeUserConfig));
+                                            .and(entityRetriever.save(activityConfig));
                                 });
 
                         Mono<Void> messageBarrierCommand = Mono.justOrEmpty(group.getOption("message-barrier"))
                                 .switchIfEmpty(keepCountingPeriodCommand.then(Mono.empty()))
                                 .flatMap(command -> Mono.justOrEmpty(command.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.message-barrier.current",
-                                        activeUserConfig.messageBarrier()).then(Mono.empty()))
+                                        activityConfig.messageBarrier()).then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .map(ApplicationCommandInteractionOptionValue::asLong))
                                 .filter(l -> l > 0)
@@ -290,26 +290,26 @@ public class InteractionCommands{
                                         return messageService.err(env.event(), "command.settings.overflow-number");
                                     }
 
-                                    activeUserConfig.messageBarrier(i);
+                                    activityConfig.messageBarrier(i);
                                     return messageService.text(env.event(), "command.settings.message-barrier.update", i)
-                                            .and(entityRetriever.save(activeUserConfig));
+                                            .and(entityRetriever.save(activityConfig));
                                 });
 
                         Mono<Void> activeUserRoleCommand = Mono.justOrEmpty(group.getOption("active-user-role"))
                                 .switchIfEmpty(messageBarrierCommand.then(Mono.empty()))
                                 .flatMap(command -> Mono.justOrEmpty(command.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.active-user-role.current",
-                                        activeUserConfig.roleId().map(DiscordUtil::getRoleMention)
+                                        activityConfig.roleId().map(DiscordUtil::getRoleMention)
                                                 .orElse(messageService.get(env.context(), "command.settings.absent")))
                                         .then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getValue())
                                         .flatMap(ApplicationCommandInteractionOptionValue::asRole))
                                 .map(Role::getId)
                                 .flatMap(roleId -> {
-                                    activeUserConfig.roleId(roleId);
+                                    activityConfig.roleId(roleId);
                                     return messageService.text(env.event(), "command.settings.active-user-role.update",
                                             DiscordUtil.getRoleMention(roleId))
-                                            .and(entityRetriever.save(activeUserConfig));
+                                            .and(entityRetriever.save(activityConfig));
                                 });
 
                         return Mono.justOrEmpty(group.getOption("enable"))
@@ -317,12 +317,12 @@ public class InteractionCommands{
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asBoolean)
-                                .switchIfEmpty(messageService.text(env.event(), "command.settings.active-user-enable.update",
-                                        formatBool.apply(activeUserConfig.isEnabled())).then(Mono.empty()))
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.activities-enable.update",
+                                        formatBool.apply(activityConfig.isEnabled())).then(Mono.empty()))
                                 .flatMap(bool -> {
-                                    activeUserConfig.setEnabled(bool);
-                                    return messageService.text(env.event(), "command.settings.active-user-enable.update", formatBool.apply(bool))
-                                            .and(entityRetriever.save(activeUserConfig));
+                                    activityConfig.setEnabled(bool);
+                                    return messageService.text(env.event(), "command.settings.activities-enable.update", formatBool.apply(bool))
+                                            .and(entityRetriever.save(activityConfig));
                                 });
                     }));
 

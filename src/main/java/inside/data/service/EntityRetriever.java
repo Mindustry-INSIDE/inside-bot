@@ -76,13 +76,13 @@ public interface EntityRetriever{
 
     Mono<Void> deleteAllStarboardsInGuild(Snowflake guildId);
 
-    // active user config
+    // activity config
 
-    Mono<ActiveUserConfig> getActiveUserConfigById(Snowflake guildId);
+    Mono<ActivityConfig> getActivityConfigById(Snowflake guildId);
 
-    Mono<Void> save(ActiveUserConfig activeUserConfig);
+    Mono<Void> save(ActivityConfig activityConfig);
 
-    Mono<Void> deleteActiveUserConfigById(Snowflake guildId);
+    Mono<Void> deleteActivityConfigById(Snowflake guildId);
 
     // emoji dispenser
 
@@ -112,7 +112,7 @@ public interface EntityRetriever{
 
     Mono<LocalMember> createLocalMember(Member member);
 
-    Mono<ActiveUserConfig> createActiveUserConfig(Snowflake guildId);
+    Mono<ActivityConfig> createActiveUserConfig(Snowflake guildId);
 
     Mono<MessageInfo> createMessageInfo(Message message);
 

@@ -16,16 +16,7 @@ public abstract class BaseLongObjEntityService<V extends BaseEntity, R extends B
 
     @Override
     public Mono<V> find(long id){
-        return Mono.defer(() -> {
-            var entity = find0(id);
-            if(entity == null){
-                synchronized(lock){
-                    entity = find0(id);
-                }
-            }
-
-            return Mono.justOrEmpty(entity);
-        });
+        return Mono.defer(() -> Mono.justOrEmpty(find0(id)));
     }
 
     @Nullable
