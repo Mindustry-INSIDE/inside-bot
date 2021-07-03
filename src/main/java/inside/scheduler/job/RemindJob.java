@@ -37,7 +37,9 @@ public class RemindJob implements Job{
         discordService.gateway().getGuildById(guildId)
                 .flatMap(guild -> guild.getChannelById(channelId))
                 .ofType(GuildMessageChannel.class)
-                .flatMap(channel -> channel.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.suppressEveryone())
+                .flatMap(channel -> channel.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.builder()
+                        .allowUser(userId)
+                        .build())
                         .setContent(String.format("%s, %s", DiscordUtil.getUserMention(userId), text))))
                 .subscribe();
     }

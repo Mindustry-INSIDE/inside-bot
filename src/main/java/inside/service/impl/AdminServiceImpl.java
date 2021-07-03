@@ -163,6 +163,7 @@ public class AdminServiceImpl implements AdminService{
 
     @Override
     public Mono<Boolean> isOwner(Member member){
+        Objects.requireNonNull(member, "member");
         return member.getGuild().map(Guild::getOwnerId).map(ownerId -> member.getId().equals(ownerId));
     }
 

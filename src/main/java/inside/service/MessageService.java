@@ -12,7 +12,7 @@ import reactor.util.context.ContextView;
 import java.util.*;
 import java.util.function.Consumer;
 
-public interface MessageService extends MessageHolderService{
+public interface MessageService{
 
     ReactionEmoji ok = ReactionEmoji.unicode("✅");
 
@@ -69,4 +69,12 @@ public interface MessageService extends MessageHolderService{
     String encrypt(String text, Snowflake messageId, Snowflake channelId);
 
     String decrypt(String text, Snowflake messageId, Snowflake channelId);
+
+    // caching
+
+    void awaitEdit(Snowflake messageId);
+
+    void removeEdit(Snowflake messageId);
+
+    boolean isAwaitEdit(Snowflake messageId);
 }
