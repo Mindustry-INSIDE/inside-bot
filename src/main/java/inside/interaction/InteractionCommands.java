@@ -147,12 +147,14 @@ public class InteractionCommands{
                                     if(enums.matches("^(#\\d+)$") && !add){ // index mode
                                         String str = enums.substring(1);
                                         if(!MessageUtil.canParseInt(str)){
-                                            return messageService.err(env.event(), "command.settings.emojis.overflow-index");
+                                            return messageService.err(env.event(), "command.settings.emojis.overflow-index")
+                                                    .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                         }
 
                                         int idx = Strings.parseInt(str) - 1; // Counting the index from 1
                                         if(idx < 0 || idx >= emojis.size()){
-                                            return messageService.err(env.event(), "command.settings.emojis.index-out-of-bounds");
+                                            return messageService.err(env.event(), "command.settings.emojis.index-out-of-bounds")
+                                                    .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                         }
 
                                         EmojiData value = emojis.remove(idx);
@@ -174,14 +176,16 @@ public class InteractionCommands{
                                                 if(add){
                                                     tmp.addAll(list);
                                                     if(tmp.size() > 20){
-                                                        return messageService.err(env.event(), "command.settings.emojis.limit");
+                                                        return messageService.err(env.event(), "command.settings.emojis.limit")
+                                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                                     }
 
                                                     emojis.addAll(list);
                                                 }else{
                                                     tmp.removeAll(list);
                                                     if(tmp.size() < 1){
-                                                        return messageService.err(env.event(), "command.settings.emojis.no-emojis");
+                                                        return messageService.err(env.event(), "command.settings.emojis.no-emojis")
+                                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                                     }
 
                                                     emojis.removeAll(list);
@@ -287,7 +291,8 @@ public class InteractionCommands{
                                 .flatMap(l -> {
                                     int i = (int)(long)l;
                                     if(i != l){
-                                        return messageService.err(env.event(), "command.settings.overflow-number");
+                                        return messageService.err(env.event(), "command.settings.overflow-number")
+                                                .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
                                     }
 
                                     activityConfig.messageBarrier(i);
@@ -1156,11 +1161,13 @@ public class InteractionCommands{
                     .orElse(0L);
 
             if(number <= 0){
-                return messageService.err(env.event(), "command.incorrect-number");
+                return messageService.err(env.event(), "command.incorrect-number")
+                        .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
             }
 
             if(number > settings.getDiscord().getMaxClearedCount()){
-                return messageService.err(env.event(), "common.limit-number", settings.getDiscord().getMaxClearedCount());
+                return messageService.err(env.event(), "common.limit-number", settings.getDiscord().getMaxClearedCount())
+                        .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true));
             }
 
             StringBuffer result = new StringBuffer();
@@ -1414,9 +1421,7 @@ public class InteractionCommands{
     public static class MathCommand extends InteractionCommand{
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
-            String expression = env.event().getInteraction().getCommandInteraction()
-                    .orElseThrow(IllegalStateException::new)
-                    .getOption("expression")
+            String expression = env.event().getOption("expression")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asString)
                     .orElseThrow(IllegalStateException::new);
@@ -1424,7 +1429,8 @@ public class InteractionCommands{
             return Commands.MathCommand.createExpression(expression).publishOn(Schedulers.boundedElastic())
                     .onErrorResume(t -> t instanceof ArithmeticException || t instanceof Expression.ExpressionException ||
                             t instanceof NumberFormatException,
-                    t -> messageService.error(env.event(), "command.math.error.title", t.getMessage()).then(Mono.empty()))
+                    t -> messageService.error(env.event(), "command.math.error.title", t.getMessage())
+                            .contextWrite(ctx -> ctx.put(KEY_EPHEMERAL, true)).then(Mono.empty()))
                     .flatMap(decimal -> messageService.text(env.event(), MessageUtil.substringTo(decimal.toString(), Message.MAX_CONTENT_LENGTH)));
         }
 
