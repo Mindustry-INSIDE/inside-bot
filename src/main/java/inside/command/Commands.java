@@ -1259,13 +1259,13 @@ public class Commands{
                     .map(OptionValue::asString);
 
             if(days.isPresent() && days.filter(MessageUtil::canParseInt).isEmpty()){
-                return messageService.err(env, "command.admin.softban.incorrect-delay");
+                return messageService.err(env, "command.admin.softban.incorrect-days");
             }
 
             int deleteDays = days.map(Strings::parseInt).orElse(0);
             if(deleteDays > 7){
                 DurationFormatter formatter = DurationFormat.wordBased(env.context().get(KEY_LOCALE));
-                return messageService.err(env, "command.admin.softban.delay-limit",
+                return messageService.err(env, "command.admin.softban.days-limit",
                         formatter.format(Duration.ofDays(7)));
             }
 

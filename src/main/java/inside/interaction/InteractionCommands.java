@@ -259,7 +259,7 @@ public class InteractionCommands{
                     .zipWith(entityRetriever.getActivityConfigById(guildId)
                             .switchIfEmpty(entityRetriever.createActiveUserConfig(guildId)))
                     .flatMap(function((group, activityConfig) -> {
-                        Mono<Void> keepCountingPeriodCommand = Mono.justOrEmpty(group.getOption("delay"))
+                        Mono<Void> keepCountingDurationCommand = Mono.justOrEmpty(group.getOption("duration"))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asString)
@@ -279,7 +279,7 @@ public class InteractionCommands{
                                 });
 
                         Mono<Void> messageBarrierCommand = Mono.justOrEmpty(group.getOption("message-barrier"))
-                                .switchIfEmpty(keepCountingPeriodCommand.then(Mono.empty()))
+                                .switchIfEmpty(keepCountingDurationCommand.then(Mono.empty()))
                                 .flatMap(command -> Mono.justOrEmpty(command.getOption("value")))
                                 .switchIfEmpty(messageService.text(env.event(), "command.settings.message-barrier.current",
                                         activityConfig.messageBarrier()).then(Mono.empty()))
@@ -437,12 +437,12 @@ public class InteractionCommands{
                                     }));
                                 }).and(entityRetriever.save(adminConfig))));
 
-                        Mono<Void> warnDelayCommand = Mono.justOrEmpty(group.getOption("warn-delay"))
+                        Mono<Void> warnDelayCommand = Mono.justOrEmpty(group.getOption("warn-duration"))
                                 .switchIfEmpty(adminRolesCommand.then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asString)
-                                .switchIfEmpty(messageService.text(env.event(), "command.settings.warn-delay.current",
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.warn-duration.current",
                                         formatDuration.apply(adminConfig.warnExpireDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
@@ -452,17 +452,17 @@ public class InteractionCommands{
                                     }
 
                                     adminConfig.warnExpireDelay(duration);
-                                    return messageService.text(env.event(), "command.settings.warn-delay.update",
+                                    return messageService.text(env.event(), "command.settings.warn-duration.update",
                                             formatDuration.apply(duration))
                                             .and(entityRetriever.save(adminConfig));
                                 });
 
-                        return Mono.justOrEmpty(group.getOption("delay"))
+                        return Mono.justOrEmpty(group.getOption("duration"))
                                 .switchIfEmpty(warnDelayCommand.then(Mono.empty()))
                                 .flatMap(opt -> Mono.justOrEmpty(opt.getOption("value")
                                         .flatMap(ApplicationCommandInteractionOption::getValue)))
                                 .map(ApplicationCommandInteractionOptionValue::asString)
-                                .switchIfEmpty(messageService.text(env.event(), "command.settings.base-delay.current",
+                                .switchIfEmpty(messageService.text(env.event(), "command.settings.base-duration.current",
                                         formatDuration.apply(adminConfig.muteBaseDelay())).then(Mono.empty()))
                                 .flatMap(str -> {
                                     Duration duration = Try.ofCallable(() -> MessageUtil.parseDuration(str)).orElse(null);
@@ -472,7 +472,7 @@ public class InteractionCommands{
                                     }
 
                                     adminConfig.muteBaseDelay(duration);
-                                    return messageService.text(env.event(), "command.settings.base-delay.update",
+                                    return messageService.text(env.event(), "command.settings.base-duration.update",
                                             formatDuration.apply(duration))
                                             .and(entityRetriever.save(adminConfig));
                                 });
@@ -787,11 +787,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add prefix(s). For multiple additions, separate the values with a comma")
+                                                    .name("Add prefix(s)")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove prefix(s). For multiple deletions, separate the values with a comma")
+                                                    .name("Remove prefix(s)")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -903,8 +903,8 @@ public class InteractionCommands{
                                             .build())
                                     .build())
                             .addOption(ApplicationCommandOptionData.builder()
-                                    .name("keep-counting-period")
-                                    .description("Configure keep counting period")
+                                    .name("keep-counting-duration")
+                                    .description("Configure keep counting duration")
                                     .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
                                     .addOption(ApplicationCommandOptionData.builder()
                                             .name("value")
@@ -951,11 +951,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add emoji(s). For multiple additions, separate the values with a comma")
+                                                    .name("Add emoji(s)")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove emoji(s). For multiple deletions, separate the values with a comma")
+                                                    .name("Remove emoji(s)")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -1018,11 +1018,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add audit action type(s). For multiple additions, separate the values with a comma")
+                                                    .name("Add audit action type(s)")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove audit action type(s). For multiple deletions, separate the values with a comma")
+                                                    .name("Remove audit action type(s)")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
@@ -1052,8 +1052,8 @@ public class InteractionCommands{
                                             .build())
                                     .build())
                             .addOption(ApplicationCommandOptionData.builder()
-                                    .name("delay")
-                                    .description("Configure default delay")
+                                    .name("duration")
+                                    .description("Configure default duration")
                                     .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
                                     .addOption(ApplicationCommandOptionData.builder()
                                             .name("value")
@@ -1072,8 +1072,8 @@ public class InteractionCommands{
                                             .build())
                                     .build())
                             .addOption(ApplicationCommandOptionData.builder()
-                                    .name("warn-delay")
-                                    .description("Configure warn expire delay")
+                                    .name("warn-duration")
+                                    .description("Configure warn expire duration")
                                     .type(ApplicationCommandOptionType.SUB_COMMAND.getValue())
                                     .addOption(ApplicationCommandOptionData.builder()
                                             .name("value")
@@ -1117,11 +1117,11 @@ public class InteractionCommands{
                                                     .value("help")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Add admin role(s). For multiple additions, separate the values with a comma")
+                                                    .name("Add admin role(s)")
                                                     .value("add")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
-                                                    .name("Remove admin role(s). For multiple deletions, separate the values with a comma")
+                                                    .name("Remove admin role(s)")
                                                     .value("remove")
                                                     .build())
                                             .addChoice(ApplicationCommandOptionChoiceData.builder()
