@@ -69,13 +69,12 @@ public abstract class Try<T>{
         Objects.requireNonNull(consumer, "consumer");
         if(isFailure()){
             return this;
-        }else{
-            try{
-                consumer.accept(get());
-                return this;
-            }catch(Throwable t){
-                return new Failure<>(t);
-            }
+        }
+        try{
+            consumer.accept(get());
+            return this;
+        }catch(Throwable t){
+            return new Failure<>(t);
         }
     }
 
@@ -88,22 +87,20 @@ public abstract class Try<T>{
         Objects.requireNonNull(runnable, "runnable");
         if(isFailure()){
             return this;
-        }else{
-            try{
-                runnable.run();
-                return this;
-            }catch(Throwable t){
-                return new Failure<>(t);
-            }
+        }
+        try{
+            runnable.run();
+            return this;
+        }catch(Throwable t){
+            return new Failure<>(t);
         }
     }
 
     public final Try<Throwable> failed(){
         if(isFailure()){
             return new Success<>(getCause());
-        }else{
-            return new Failure<>(new NoSuchElementException("Success.failed()"));
         }
+        return new Failure<>(new NoSuchElementException("Success.failed()"));
     }
 
     public final Try<T> filter(Predicate<? super T> predicate, Supplier<? extends Throwable> supplier){
@@ -133,16 +130,14 @@ public abstract class Try<T>{
         Objects.requireNonNull(supplier, "supplier");
         if(isFailure()){
             return this;
-        }else{
-            try{
-                if(predicate.test(get())){
-                    return this;
-                }else{
-                    return new Failure<>(supplier.get());
-                }
-            }catch(Throwable t){
-                return new Failure<>(t);
+        }
+        try{
+            if(predicate.test(get())){
+                return this;
             }
+            return new Failure<>(supplier.get());
+        }catch(Throwable t){
+            return new Failure<>(t);
         }
     }
 
@@ -162,12 +157,11 @@ public abstract class Try<T>{
         Objects.requireNonNull(mapper, "mapper");
         if(isFailure()){
             return (Failure<U>)this;
-        }else{
-            try{
-                return (Try<U>)mapper.apply(get());
-            }catch(Throwable t){
-                return new Failure<>(t);
-            }
+        }
+        try{
+            return (Try<U>)mapper.apply(get());
+        }catch(Throwable t){
+            return new Failure<>(t);
         }
     }
 
@@ -189,12 +183,11 @@ public abstract class Try<T>{
         Objects.requireNonNull(mapper, "mapper");
         if(isFailure()){
             return (Failure<U>)this;
-        }else{
-            try{
-                return new Success<>(mapper.apply(get()));
-            }catch(Throwable t){
-                return new Failure<>(t);
-            }
+        }
+        try{
+            return new Success<>(mapper.apply(get()));
+        }catch(Throwable t){
+            return new Failure<>(t);
         }
     }
 
@@ -275,17 +268,15 @@ public abstract class Try<T>{
         Objects.requireNonNull(mapper, "mapper");
         if(isFailure()){
             throw mapper.apply(getCause());
-        }else{
-            return get();
         }
+        return get();
     }
 
     public final <X> X fold(Function<? super Throwable, ? extends X> ifFail, Function<? super T, ? extends X> function){
         if(isFailure()){
             return ifFail.apply(getCause());
-        }else{
-            return function.apply(get());
         }
+        return function.apply(get());
     }
 
     public final Try<T> peek(Consumer<? super Throwable> failureAction, Consumer<? super T> successAction){
@@ -356,9 +347,8 @@ public abstract class Try<T>{
         Objects.requireNonNull(function, "function");
         if(isFailure()){
             return Try.ofCallable(() -> function.apply(getCause()));
-        }else{
-            return this;
         }
+        return this;
     }
 
     @SuppressWarnings("unchecked")
@@ -370,9 +360,8 @@ public abstract class Try<T>{
             }catch(Throwable t){
                 return new Failure<>(t);
             }
-        }else{
-            return this;
         }
+        return this;
     }
 
     public final <U> U transform(Function<? super Try<T>, ? extends U> function){

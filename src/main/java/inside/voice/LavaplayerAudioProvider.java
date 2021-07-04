@@ -14,7 +14,7 @@ public class LavaplayerAudioProvider extends AudioProvider{
     private LavaplayerAudioProvider(AudioPlayer player){
         super(ByteBuffer.allocate(StandardAudioDataFormats.DISCORD_OPUS.maximumChunkSize()));
         this.player = player;
-        this.frame.setBuffer(getBuffer());
+        frame.setBuffer(getBuffer());
     }
 
     public static AudioProvider create(AudioPlayer player){
