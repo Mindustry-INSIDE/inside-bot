@@ -815,7 +815,7 @@ public class Commands{
                     .then(Mono.just(message));
 
             return channel.flatMap(reply -> reply.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
-                    .setEmbed(embed -> embed.setTitle(title)
+                    .addEmbed(embed -> embed.setTitle(title)
                             .setColor(settings.getDefaults().getNormalColor())
                             .setDescription(IntStream.range(1, vars.length)
                                     .mapToObj(i -> String.format("**%d**. %s%n", i, vars[i]))

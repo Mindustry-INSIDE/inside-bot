@@ -45,7 +45,7 @@ public abstract class BaseAuditProvider implements AuditProvider{
                                                 .orElseThrow(IllegalStateException::new))))) // asserted above
                                 .thenReturn(false)))
                 .flatMap(channel -> channel.createMessage(spec -> {
-                    spec.setEmbed(embed -> build(action, ctx, spec, embed.setColor(action.type().color)));
+                    spec.addEmbed(embed -> build(action, ctx, spec, embed.setColor(action.type().color)));
                     attachments.forEach(TupleUtils.consumer(spec::addFile));
                 }))
                 .then());

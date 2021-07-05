@@ -98,7 +98,8 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                             .switchIfEmpty(findIfAbsent);
 
                     Mono<Message> updateOld = event.getMessage().zipWith(targetMessage)
-                            .flatMap(function((source, target) -> target.edit(spec -> spec.setEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
+                            .flatMap(function((source, target) -> target.edit(spec -> spec.removeEmbeds()
+                                    .addEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
                                     .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
                                     .setContent(messageService.format(context, "starboard.format",
                                             formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
@@ -109,7 +110,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                     context, "starboard.format", formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                     l, DiscordUtil.getChannelMention(source.getChannelId())))
                                     .setAllowedMentions(AllowedMentions.suppressAll())
-                                    .setEmbed(embed -> {
+                                    .addEmbed(embed -> {
                                         embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                                                 .withLocale(context.get(KEY_LOCALE))
                                                 .withZone(context.get(KEY_TIMEZONE))
@@ -205,7 +206,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                 }
 
                                 Snowflake sourceChannelId = event.getChannelId();
-                                return target.edit(spec -> spec.setEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
+                                return target.edit(spec -> spec.removeEmbeds().addEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
                                         .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
                                         .setContent(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
