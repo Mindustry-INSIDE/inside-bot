@@ -465,21 +465,25 @@ public class Commands{
             String text = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .map(str -> MessageUtil.substringTo(leeted(str, ru), Message.MAX_CONTENT_LENGTH))
+                    .map(str -> leeted(str, ru))
                     .orElse("");
 
-            return messageService.text(env, text)
-                    .contextWrite(ctx -> ctx.put(KEY_REPLY, true));
+            return messageService.text(env, spec -> {
+                if(text.length() >= Message.MAX_CONTENT_LENGTH){
+                    spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(text));
+                }else{
+                    spec.setContent(text);
+                }
+            }).contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
 
         public static String leeted(String text, boolean russian){
             Map<String, String> map = russian ? rusLeetSpeak : engLeetSpeak;
             UnaryOperator<String> get = s -> {
                 String result = Optional.ofNullable(map.get(s.toLowerCase()))
-                        .or(() -> map.entrySet().stream()
+                        .or(map.entrySet().stream()
                                 .filter(entry -> entry.getValue().equalsIgnoreCase(s))
-                                .map(Map.Entry::getKey)
-                                .findFirst())
+                                .map(Map.Entry::getKey)::findFirst)
                         .orElse("");
 
                 return s.chars().anyMatch(Character::isUpperCase) ? result.toUpperCase() : result;
@@ -543,20 +547,24 @@ public class Commands{
             String translited = interaction.getOption(0)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .map(str -> MessageUtil.substringTo(translit(str), Message.MAX_CONTENT_LENGTH))
+                    .map(TransliterationCommand::translit)
                     .orElse("");
 
-            return messageService.text(env, translited)
-                    .contextWrite(ctx -> ctx.put(KEY_REPLY, true));
+            return messageService.text(env, spec -> {
+                if(translited.length() >= Message.MAX_CONTENT_LENGTH){
+                    spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(translited));
+                }else{
+                    spec.setContent(translited);
+                }
+            }).contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
 
         public static String translit(String text){
             UnaryOperator<String> get = s -> {
                 String result = Optional.ofNullable(translit.get(s.toLowerCase()))
-                        .or(() -> translit.entrySet().stream()
+                        .or(translit.entrySet().stream()
                                 .filter(entry -> entry.getValue().equalsIgnoreCase(s))
-                                .map(Map.Entry::getKey)
-                                .findFirst())
+                                .map(Map.Entry::getKey)::findFirst)
                         .orElse("");
 
                 return s.chars().anyMatch(Character::isUpperCase) ? result.toUpperCase() : result;
@@ -652,7 +660,14 @@ public class Commands{
                     .onErrorResume(t -> t instanceof ArithmeticException || t instanceof Expression.ExpressionException ||
                                     t instanceof NumberFormatException,
                             t -> messageService.error(env, "command.math.error.title", t.getMessage()).then(Mono.empty()))
-                    .flatMap(decimal -> messageService.text(env, MessageUtil.substringTo(decimal.toString(), Message.MAX_CONTENT_LENGTH)));
+                    .map(BigDecimal::toString)
+                    .flatMap(decimal -> messageService.text(env, spec -> {
+                        if(decimal.length() >= Message.MAX_CONTENT_LENGTH){
+                            spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(decimal));
+                        }else{
+                            spec.setContent(decimal);
+                        }
+                    }));
         }
 
         @Override
@@ -716,8 +731,8 @@ public class Commands{
         private static final LazyFunction levenshteinDstFunction = new AbstractLazyFunction("LEVEN", 2){
             @Override
             public Expression.LazyNumber lazyEval(List<Expression.LazyNumber> lazyParams){
-                Expression.LazyNumber first = lazyParams.get(0);
-                Expression.LazyNumber second = lazyParams.get(1);
+                var first = lazyParams.get(0);
+                var second = lazyParams.get(1);
                 return createNumber(() -> BigDecimal.valueOf(Strings.levenshtein(first.getString(), second.getString())));
             }
         };
@@ -865,8 +880,6 @@ public class Commands{
 
     @DiscordCommand(key = "remind", params = "command.remind.params", description = "command.remind.description")
     public static class RemindCommand extends Command{
-        private static final Logger log = Loggers.getLogger(RemindCommand.class);
-
         @Autowired
         private SchedulerFactoryBean schedulerFactoryBean;
 
@@ -909,28 +922,41 @@ public class Commands{
         public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
             Member member = env.getAuthorAsMember();
 
-            boolean add = interaction.getOption(0)
+            String mode = interaction.getOption(0)
                     .flatMap(CommandOption::getChoice)
                     .map(OptionValue::asString)
-                    .filter(s -> s.matches("^(add|remove)$"))
-                    .map("add"::equals)
-                    .orElse(false);
+                    .filter(s -> s.matches("(?i)^(add|remove|clear)$"))
+                    .orElse(null);
 
             String value = interaction.getOption(1)
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asString)
-                    .orElseThrow(IllegalStateException::new);
+                    .orElse(null);
 
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         List<String> prefixes = guildConfig.prefixes();
-                        if(add){
+                        if(mode == null){
+                            return messageService.text(env, "command.settings.prefix.current",
+                                    String.join(", ", prefixes));
+                        }else if(mode.equalsIgnoreCase("add")){
+                            if(value == null){
+                                return messageService.err(env, "command.settings.prefix-absent");
+                            }
                             prefixes.add(value);
                             return messageService.text(env, "command.settings.added", value);
+                        }else if(mode.equalsIgnoreCase("remove")){
+                            if(value == null){
+                                return messageService.err(env, "command.settings.prefix-absent");
+                            }
+                            prefixes.remove(value);
+                            return messageService.text(env, "command.settings.removed", value);
+                        }else{
+                            // ignore value, it's doesn't matter
+                            prefixes.clear();
+                            return messageService.text(env, "command.settings.prefix.clear");
                         }
-                        prefixes.remove(value);
-                        return messageService.text(env, "command.settings.removed", value);
                     }).and(entityRetriever.save(guildConfig)));
         }
     }
@@ -957,6 +983,8 @@ public class Commands{
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
                     .filter(ignored -> present)
+                    .switchIfEmpty(messageService.text(env, "command.settings.timezone.current",
+                            env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
                     .flatMap(guildConfig -> Mono.defer(() -> {
                         if(timeZone == null){
                             return ZoneId.getAvailableZoneIds().stream()
@@ -970,10 +998,7 @@ public class Commands{
                                 "command.settings.timezone.update", ctx.<Locale>get(KEY_TIMEZONE)))
                                 .contextWrite(ctx -> ctx.put(KEY_TIMEZONE, timeZone))
                                 .and(entityRetriever.save(guildConfig));
-                    }).thenReturn(guildConfig))
-                    .switchIfEmpty(messageService.text(env, "command.settings.timezone.current",
-                            env.context().<Locale>get(KEY_TIMEZONE)).then(Mono.empty()))
-                    .then();
+                    }));
         }
     }
 
@@ -994,7 +1019,9 @@ public class Commands{
             return entityRetriever.getGuildConfigById(member.getGuildId())
                     .switchIfEmpty(entityRetriever.createGuildConfig(member.getGuildId()))
                     .filter(guildConfig -> present)
-                    .flatMap(guildConfig -> Mono.defer(() -> {
+                    .switchIfEmpty(messageService.text(env, "command.settings.locale.current",
+                            env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
+                    .flatMap(guildConfig -> {
                         if(locale == null){
                             String all = messageService.getSupportedLocales().values().stream()
                                     .map(locale1 -> String.format("%s (`%s`)", locale1.getDisplayName(), locale1))
@@ -1008,10 +1035,7 @@ public class Commands{
                                 ctx.<Locale>get(KEY_LOCALE).getDisplayName()))
                                 .contextWrite(ctx -> ctx.put(KEY_LOCALE, locale))
                                 .and(entityRetriever.save(guildConfig));
-                    }).thenReturn(guildConfig))
-                    .switchIfEmpty(messageService.text(env, "command.settings.locale.current",
-                            env.context().<Locale>get(KEY_LOCALE).getDisplayName()).then(Mono.empty()))
-                    .then();
+                    });
         }
     }
 
@@ -1059,7 +1083,7 @@ public class Commands{
                     .filterWhen(member -> Mono.zip(adminService.isAdmin(member), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
                     .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
-                    .flatMap(member -> Mono.defer(() -> {
+                    .flatMap(member -> {
                         if(author.equals(member)){
                             return messageService.err(env, "command.admin.mute.self-user");
                         }
@@ -1070,7 +1094,7 @@ public class Commands{
 
                         return adminService.mute(author, member, delay.toInstant(), reason)
                                 .and(env.getMessage().addReaction(ok));
-                    }));
+                    });
         }
     }
 
@@ -1093,9 +1117,8 @@ public class Commands{
                     .flatMap(id -> env.getClient().getMemberById(guildId, id))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
                     .filterWhen(adminService::isMuted)
-                    .flatMap(target -> adminService.unmute(target).and(env.getMessage().addReaction(ok)).thenReturn(target))
                     .switchIfEmpty(messageService.err(env, "audit.member.unmute.is-not-muted").then(Mono.never()))
-                    .then();
+                    .flatMap(target -> adminService.unmute(target).and(env.getMessage().addReaction(ok)));
         }
     }
 
