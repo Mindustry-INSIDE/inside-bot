@@ -27,6 +27,8 @@ public enum AuditActionType{
     MEMBER_ROLE_ADD(0x4286f4),
     MEMBER_ROLE_REMOVE(0x2c4d82);
 
+    public static final AuditActionType[] all = values();
+
     public final Color color;
 
     AuditActionType(int hex){

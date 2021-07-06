@@ -507,7 +507,7 @@ public class InteractionCommands{
                                         .filter(str -> !str.equals("help"))
                                         .switchIfEmpty(Mono.defer(() -> {
                                             StringBuilder builder = new StringBuilder();
-                                            var types = AuditActionType.values();
+                                            var types = AuditActionType.all;
                                             for(int i = 0; i < types.length; i++){
                                                 builder.append(messageService.getEnum(env.context(), types[i]));
                                                 if(i + 1 != types.length){
@@ -534,7 +534,7 @@ public class InteractionCommands{
                                         return messageService.text(env.event(), "command.settings.actions.clear");
                                     }
 
-                                    List<Tuple2<AuditActionType, String>> all = Arrays.stream(AuditActionType.values())
+                                    List<Tuple2<AuditActionType, String>> all = Arrays.stream(AuditActionType.all)
                                             .map(type -> Tuples.of(type, messageService.getEnum(env.context(), type)))
                                             .collect(Collectors.toUnmodifiableList());
 
