@@ -18,7 +18,7 @@ public class DurationType extends AbstractSingleColumnStandardBasicType<Duration
 
     @Override
     public String getName(){
-        return "jduration";
+        return "duration";
     }
 
     @Override

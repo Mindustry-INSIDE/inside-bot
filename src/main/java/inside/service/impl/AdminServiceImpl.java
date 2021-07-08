@@ -153,7 +153,7 @@ public class AdminServiceImpl implements AdminService{
                         .reason(reason)
                         .timestamp(Instant.now())
                         .endTimestamp(Optional.ofNullable(adminConfig.warnExpireDelay())
-                                .map(jduration -> Instant.now().plus(jduration))
+                                .map(duration -> Instant.now().plus(duration))
                                 .orElse(null))
                         .build())))
                 .filter(action -> action.endTimestamp().isPresent())

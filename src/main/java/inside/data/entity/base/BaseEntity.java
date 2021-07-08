@@ -12,7 +12,7 @@ import java.util.Objects;
         @TypeDef(name = "json", typeClass = JsonType.class),
         @TypeDef(name = "zone_id", typeClass = ZoneIdType.class,
                 defaultForType = ZoneId.class),
-        @TypeDef(name = "jduration", typeClass = DurationType.class,
+        @TypeDef(name = "duration", typeClass = DurationType.class,
                 defaultForType = Duration.class),
 })
 @MappedSuperclass
