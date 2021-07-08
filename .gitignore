@@ -10,5 +10,6 @@ build/
 !gradle-wrapper.jar
 
 # Misc
+*.bin
 logs/
 src/legacy/

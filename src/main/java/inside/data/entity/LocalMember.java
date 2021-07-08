@@ -43,7 +43,7 @@ public class LocalMember extends GuildEntity{
     }
 
     public void activity(Activity activity){
-        this.activity = activity;
+        this.activity = Objects.requireNonNull(activity, "activity");
     }
 
     @Override

@@ -122,6 +122,23 @@ public class AdminServiceImpl implements AdminService{
 
     @Override
     @Transactional
+    public Mono<Void> unban(Member target){
+        Mono<Void> remove = get(AdminActionType.mute, target.getGuildId(), target.getId()).next()
+                .flatMap(adminAction -> Mono.fromRunnable(() -> repository.delete(adminAction)))
+                .then();
+
+        Mono<Void> log = auditService.newBuilder(target.getGuildId(), AuditActionType.MEMBER_UNBAN)
+                .withTargetUser(target)
+                .save();
+
+        Mono<Void> unbanTarget = target.getGuild()
+                .flatMap(guild -> guild.unban(target.getId()));
+
+        return Mono.when(unbanTarget, log, remove);
+    }
+
+    @Override
+    @Transactional
     public Mono<Void> warn(Member admin, Member target, @Nullable String reason){
         Mono<AdminConfig> getOrCreateAdminConfig = entityRetriever.getAdminConfigById(admin.getGuildId())
                 .switchIfEmpty(entityRetriever.createAdminConfig(admin.getGuildId()));

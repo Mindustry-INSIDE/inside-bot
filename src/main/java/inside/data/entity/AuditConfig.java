@@ -32,13 +32,13 @@ public class AuditConfig extends ConfigEntity{
 
     public Set<AuditActionType> types(){
         if(types == null){
-            types = new HashSet<>();
+            types = EnumSet.noneOf(AuditActionType.class);
         }
         return types;
     }
 
-    public void types(Set<AuditActionType> enabled){
-        this.types = Objects.requireNonNull(enabled, "enabled");
+    public void types(Set<AuditActionType> types){
+        this.types = Objects.requireNonNull(types, "types");
     }
 
     @Transient

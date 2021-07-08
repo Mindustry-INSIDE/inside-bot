@@ -104,7 +104,7 @@ public class Settings{
 
     public static class Defaults{
 
-        private List<String> prefixes = List.of("#");
+        private List<String> prefixes = Arrays.asList("#");
 
         private ZoneId timeZone = ZoneId.of("Etc/Greenwich");
 

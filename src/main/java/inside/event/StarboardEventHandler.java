@@ -211,7 +211,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                         .setContent(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                         l, DiscordUtil.getChannelMention(sourceChannelId))));
-                    }));
+                            }));
         }).contextWrite(context)));
     }
 

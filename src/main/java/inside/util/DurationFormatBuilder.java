@@ -50,7 +50,6 @@ public class DurationFormatBuilder{
                 fieldFormatter.finish(fieldFormatters);
             }
         }
-        fieldFormatters = fieldFormatters.clone();
         return formatter;
     }
 
@@ -289,7 +288,7 @@ public class DurationFormatBuilder{
         return this;
     }
 
-    private static DurationFormatter toFormatter(List<DurationPrinter> printers){
+    private static DurationFormatter toFormatter(List<? extends DurationPrinter> printers){
         int size = printers.size();
         if(size >= 2 && printers.get(0) instanceof Separator sep){
             if(sep.afterPrinter == null){
@@ -314,14 +313,14 @@ public class DurationFormatBuilder{
 
         String[] getAffixes();
 
-        void finish(Set<PeriodFieldAffix> affixesToIgnore);
+        void finish(Set<? extends PeriodFieldAffix> affixesToIgnore);
     }
 
     static abstract class IgnorableAffix implements PeriodFieldAffix{
         private volatile String[] otherAffixes;
 
         @Override
-        public void finish(Set<PeriodFieldAffix> periodFieldAffixesToIgnore){
+        public void finish(Set<? extends PeriodFieldAffix> periodFieldAffixesToIgnore){
             if(otherAffixes == null){
                 // Calculate the shortest affix in this instance.
                 int shortestAffixLength = Integer.MAX_VALUE;

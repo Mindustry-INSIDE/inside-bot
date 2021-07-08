@@ -4,5 +4,6 @@ public enum AdminActionType{
     warn,
     mute,
     kick,
+    tempban,
     ban
 }

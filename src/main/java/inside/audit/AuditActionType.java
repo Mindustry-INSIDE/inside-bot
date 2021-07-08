@@ -22,6 +22,7 @@ public enum AuditActionType{
     MEMBER_BAN(0xffcc00),
     MEMBER_MUTE(0xffca59),
     MEMBER_UNMUTE(0x85ea88),
+    MEMBER_UNBAN(0x89a78a),
     MEMBER_AVATAR_UPDATE(0x208320),
     MEMBER_NICKNAME_UPDATE(0x6fabae),
     MEMBER_ROLE_ADD(0x4286f4),

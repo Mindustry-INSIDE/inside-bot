@@ -25,6 +25,8 @@ public interface AdminService{
 
     Mono<Void> unmute(Member target);
 
+    Mono<Void> unban(Member target);
+
     Mono<Void> warn(Member admin, Member target, @Nullable String reason);
 
     Mono<Void> unwarn(Snowflake guildId, Snowflake targetId, int index);

@@ -952,8 +952,8 @@ public class Commands{
                             }
                             prefixes.remove(value);
                             return messageService.text(env, "command.settings.removed", value);
-                        }else{
-                            // ignore value, it's doesn't matter
+                        }else{ // clear
+                            // ignore value, it doesn't matter
                             prefixes.clear();
                             return messageService.text(env, "command.settings.prefix.clear");
                         }
