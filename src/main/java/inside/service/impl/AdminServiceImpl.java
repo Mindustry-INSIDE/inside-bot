@@ -143,8 +143,13 @@ public class AdminServiceImpl implements AdminService{
         Mono<AdminConfig> getOrCreateAdminConfig = entityRetriever.getAdminConfigById(admin.getGuildId())
                 .switchIfEmpty(entityRetriever.createAdminConfig(admin.getGuildId()));
 
-        return Mono.zip(entityRetriever.getAndUpdateLocalMemberById(admin), entityRetriever.getAndUpdateLocalMemberById(target),
-                getOrCreateAdminConfig)
+        Mono<LocalMember> getOrCreateAdmin = entityRetriever.getAndUpdateLocalMemberById(admin)
+                .switchIfEmpty(entityRetriever.createLocalMember(admin));
+
+        Mono<LocalMember> getOrCreateTarget = entityRetriever.getAndUpdateLocalMemberById(target)
+                .switchIfEmpty(entityRetriever.createLocalMember(target));
+
+        return Mono.zip(getOrCreateAdmin, getOrCreateTarget, getOrCreateAdminConfig)
                 .map(function((adminLocalMember, targetLocalMember, adminConfig) -> repository.save(AdminAction.builder()
                         .guildId(admin.getGuildId())
                         .type(AdminActionType.warn)
@@ -164,6 +169,14 @@ public class AdminServiceImpl implements AdminService{
                         .withSchedule(SimpleScheduleBuilder.simpleSchedule())
                         .build())))
                 .then();
+    }
+
+    @Override
+    @Transactional
+    public Mono<Void> unwarnAll(Snowflake guildId, Snowflake targetId){
+        Objects.requireNonNull(guildId, "guildId");
+        Objects.requireNonNull(targetId, "targetId");
+        return get(AdminActionType.warn, guildId, targetId).doOnNext(repository::delete).then(); // TODO: why spring doesn't execute 'delete from...'
     }
 
     @Override

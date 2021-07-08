@@ -29,6 +29,8 @@ public interface AdminService{
 
     Mono<Void> warn(Member admin, Member target, @Nullable String reason);
 
+    Mono<Void> unwarnAll(Snowflake guildId, Snowflake targetId);
+
     Mono<Void> unwarn(Snowflake guildId, Snowflake targetId, int index);
 
     default Mono<Void> unwarn(Member target, int index){

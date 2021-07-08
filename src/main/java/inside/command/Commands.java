@@ -1377,7 +1377,7 @@ public class Commands{
                     .flatMap(CommandOption::getValue)
                     .map(OptionValue::asSnowflake);
 
-            Snowflake guildId = env.getAuthorAsMember().getGuildId();
+            Snowflake guildId = author.getGuildId();
 
             Optional<String> index = interaction.getOption("index")
                     .flatMap(CommandOption::getValue)
@@ -1406,6 +1406,29 @@ public class Commands{
                         return messageService.text(env, "command.admin.unwarn", target.getUsername(), warn)
                                 .and(adminService.unwarn(target, warn - 1));
                     }));
+        }
+    }
+
+    @DiscordCommand(key = "unwarnall", params = "command.admin.unwarnall.params", description = "command.admin.unwarnall.description")
+    public static class UnwarnAllCommand extends AdminCommand{
+        @Override
+        public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
+            Member author = env.getAuthorAsMember();
+
+            Optional<Snowflake> targetId = interaction.getOption("@user")
+                    .flatMap(CommandOption::getValue)
+                    .map(OptionValue::asSnowflake);
+
+            Snowflake guildId = author.getGuildId();
+
+            return Mono.justOrEmpty(targetId).flatMap(id -> env.getClient().getMemberById(guildId, id))
+                    .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.never()))
+                    .filter(Predicate.not(User::isBot))
+                    .switchIfEmpty(messageService.err(env, "common.bot").then(Mono.never()))
+                    .filterWhen(target -> adminService.isOwner(author).map(owner -> !target.equals(author) || owner))
+                    .switchIfEmpty(messageService.err(env, "command.admin.unwarnall.permission-denied").then(Mono.never())) // pluralized variant
+                    .flatMap(target -> messageService.text(env, "command.admin.unwarnall", target.getUsername())
+                            .then(adminService.unwarnAll(guildId, target.getId())));
         }
     }
 
@@ -1548,8 +1571,7 @@ public class Commands{
                                         .then();
 
                                 return Mono.firstWithSignal(onDelay, onEvent).then(connection.disconnect());
-                            }))
-                    .then();
+                            }));
 
             AudioLoadResultHandler loadResultHandler = new FunctionalResultHandler(
                     track -> messageService.text(env, "command.voice.play.queued")
