@@ -9,7 +9,6 @@ import inside.service.*;
 import inside.util.DiscordUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import reactor.core.publisher.Mono;
-import reactor.function.TupleUtils;
 import reactor.util.context.ContextView;
 import reactor.util.function.Tuple2;
 
@@ -17,8 +16,10 @@ import java.io.InputStream;
 import java.time.ZoneId;
 import java.time.format.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static inside.util.ContextUtil.*;
+import static reactor.function.TupleUtils.function;
 
 public abstract class BaseAuditProvider implements AuditProvider{
     public static final String MESSAGE_TXT = "message.txt";
@@ -44,16 +45,22 @@ public abstract class BaseAuditProvider implements AuditProvider{
                                         DiscordUtil.getChannelMention(config.logChannelId()
                                                 .orElseThrow(IllegalStateException::new))))) // asserted above
                                 .thenReturn(false)))
-                .flatMap(channel -> channel.createMessage(spec -> {
-                    spec.addEmbed(embed -> build(action, ctx, spec, embed.setColor(action.type().color)));
-                    attachments.forEach(TupleUtils.consumer(spec::addFile));
-                }))
+                .flatMap(channel -> {
+                    var messageSpec = MessageCreateSpec.builder();
+                    var embedSpec = EmbedCreateSpec.builder();
+
+                    build(action, ctx, messageSpec, embedSpec);
+
+                    return channel.createMessage(messageSpec.embed(embedSpec.build()).files(attachments.stream()
+                            .map(function(MessageCreateFields.File::of))
+                            .collect(Collectors.toList())).build());
+                })
                 .then());
     }
 
-    protected void addTimestamp(ContextView context, AuditAction action, EmbedCreateSpec embed){
+    protected void addTimestamp(ContextView context, AuditAction action, EmbedCreateSpec.Builder embed){
         ZoneId zoneId = context.get(KEY_TIMEZONE);
-        embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
+        embed.footer(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                 .withLocale(context.get(KEY_LOCALE))
                 .withZone(zoneId)
                 .format(action.timestamp()), null);
@@ -85,5 +92,7 @@ public abstract class BaseAuditProvider implements AuditProvider{
                 (channel ? "<#" : "<@") + reference.id() + ">");
     }
 
-    protected abstract void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed);
+    protected abstract void build(AuditAction action, ContextView context,
+                                  MessageCreateSpec.Builder spec,
+                                  EmbedCreateSpec.Builder embed);
 }

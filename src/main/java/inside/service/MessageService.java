@@ -40,13 +40,13 @@ public interface MessageService{
 
     Mono<Void> text(CommandEnvironment environment, String text, Object... args);
 
-    Mono<Void> text(CommandEnvironment environment, Consumer<MessageCreateSpec> message);
+    Mono<Void> text(CommandEnvironment environment, Consumer<MessageCreateSpec.Builder> message);
 
     Mono<Void> info(Mono<? extends MessageChannel> channel, String title, String text, Object... args); // for using in DM
 
     Mono<Void> info(CommandEnvironment environment, String title, String text, Object... args);
 
-    Mono<Void> info(CommandEnvironment environment, Consumer<EmbedCreateSpec> embed);
+    Mono<Void> info(CommandEnvironment environment, Consumer<EmbedCreateSpec.Builder> embed);
 
     Mono<Void> err(CommandEnvironment environment, String text, Object... args);
 
@@ -58,7 +58,7 @@ public interface MessageService{
 
     Mono<Void> info(InteractionCreateEvent event, String title, String text, Object... args);
 
-    Mono<Void> info(InteractionCreateEvent event, Consumer<EmbedCreateSpec> embed);
+    Mono<Void> info(InteractionCreateEvent event, Consumer<EmbedCreateSpec.Builder> embed);
 
     Mono<Void> err(InteractionCreateEvent event, String text, Object... args);
 

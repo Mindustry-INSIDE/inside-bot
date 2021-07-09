@@ -26,7 +26,7 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MESSAGE_EDIT)
     public static class MessageEditAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Snowflake messageId = action.getAttribute(MESSAGE_ID);
             String oldContent = action.getAttribute(OLD_CONTENT);
             String newContent = action.getAttribute(NEW_CONTENT);
@@ -35,8 +35,8 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.message.edit.description",
+            embed.author(formatName(action.user()), null, url);
+            embed.description(messageService.format(context, "audit.message.edit.description",
                     action.guildId().asString(),
                     action.channel().id(),
                     messageId.asString()));
@@ -61,7 +61,7 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MESSAGE_DELETE)
     public static class MessageDeleteAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String oldContent = action.getAttribute(OLD_CONTENT);
             String url = action.getAttribute(AVATAR_URL);
             NamedReference target = action.target();
@@ -69,7 +69,7 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(formatName(target), null, url);
+            embed.author(formatName(target), null, url);
 
             if(oldContent.length() > 0){
                 embed.addField(messageService.get(context, "audit.message.deleted-content.title"),
@@ -91,13 +91,13 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MESSAGE_CLEAR)
     public static class MessageClearAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Long count = action.getAttribute(COUNT);
             if(count == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.message.clear.description", count,
+            embed.description(messageService.format(context, "audit.message.clear.description", count,
                     messageService.getCount(context, "common.plurals.message", count)));
             embed.addField(messageService.get(context, "audit.member.admin"),
                     getUserReference(context, action.user()), true);
@@ -113,8 +113,8 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_JOIN)
     public static class MemberJoinAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
-            embed.setDescription(messageService.format(context, "audit.member.join.description",
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
+            embed.description(messageService.format(context, "audit.member.join.description",
                     getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
         }
@@ -123,8 +123,8 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_LEAVE)
     public static class MemberLeaveAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
-            embed.setDescription(messageService.format(context, "audit.member.leave.description",
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
+            embed.description(messageService.format(context, "audit.member.leave.description",
                     getUserReference(context, action.user())));
             addTimestamp(context, action, embed);
         }
@@ -133,14 +133,14 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_KICK)
     public static class MemberKickAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String reason = action.getAttribute(REASON);
             NamedReference target = action.target();
             if(target == null || reason == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.member.kick.title", getUserReference(context, target)));
+            embed.description(messageService.format(context, "audit.member.kick.title", getUserReference(context, target)));
             embed.addField(messageService.get(context, "audit.member.admin"),
                     getUserReference(context, action.user()), true);
             embed.addField(messageService.get(context, "audit.member.reason"), reason, true);
@@ -151,14 +151,14 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_BAN)
     public static class MemberBanAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String reason = action.getAttribute(REASON);
             NamedReference target = action.target();
             if(target == null || reason == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.member.ban.title", getUserReference(context, target)));
+            embed.description(messageService.format(context, "audit.member.ban.title", getUserReference(context, target)));
             embed.addField(messageService.get(context, "audit.member.admin"),
                     getUserReference(context, action.user()), true);
             embed.addField(messageService.get(context, "audit.member.reason"), reason, true);
@@ -169,13 +169,13 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_UNMUTE)
     public static class MemberUnmuteAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             NamedReference target = action.target();
             if(target == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.member.unmute.title", getUserReference(context, target)));
+            embed.description(messageService.format(context, "audit.member.unmute.title", getUserReference(context, target)));
             addTimestamp(context, action, embed);
         }
     }
@@ -183,7 +183,7 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_MUTE)
     public static class MemberMuteAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Instant delay = action.getAttribute(DELAY);
             String reason = action.getAttribute(REASON);
             NamedReference target = action.target();
@@ -199,7 +199,7 @@ public class AuditProviders{
                     .withLocale(context.get(KEY_LOCALE))
                     .withZone(context.get(KEY_TIMEZONE));
 
-            embed.setDescription(messageService.format(context, "audit.member.mute.title", getUserReference(context, target)));
+            embed.description(messageService.format(context, "audit.member.mute.title", getUserReference(context, target)));
             embed.addField(messageService.get(context, "audit.member.admin"),
                     getUserReference(context, action.user()), true);
             embed.addField(messageService.get(context, "audit.member.reason"), reason, true);
@@ -215,15 +215,15 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_ROLE_ADD)
     public static class MemberRoleAddAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String url = action.getAttribute(AVATAR_URL);
             Collection<Snowflake> roleIds = action.getAttribute(ROLE_IDS);
             if(url == null || roleIds == null){
                 return;
             }
 
-            embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.member.role-add.title",
+            embed.author(formatName(action.user()), null, url);
+            embed.description(messageService.format(context, "audit.member.role-add.title",
                     messageService.getCount(context, "audit.plurals.role", roleIds.size()),
                     roleIds.stream().map(DiscordUtil::getRoleMention).collect(Collectors.joining(", ")),
                     getUserReference(context, action.user())));
@@ -234,15 +234,15 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_ROLE_REMOVE)
     public static class MemberRoleRemoveAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String url = action.getAttribute(AVATAR_URL);
             Collection<Snowflake> roleIds = action.getAttribute(ROLE_IDS);
             if(url == null || roleIds == null){
                 return;
             }
 
-            embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.member.role-remove.title",
+            embed.author(formatName(action.user()), null, url);
+            embed.description(messageService.format(context, "audit.member.role-remove.title",
                     messageService.getCount(context, "audit.plurals.role", roleIds.size()),
                     roleIds.stream().map(DiscordUtil::getRoleMention).collect(Collectors.joining(", ")),
                     getUserReference(context, action.user())));
@@ -253,17 +253,17 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_AVATAR_UPDATE)
     public static class MemberAvatarUpdateAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String url = action.getAttribute(AVATAR_URL);
             String oldUrl = action.getAttribute(OLD_AVATAR_URL);
             if(oldUrl == null || url == null){
                 return;
             }
 
-            embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.member.avatar-update.title",
+            embed.author(formatName(action.user()), null, url);
+            embed.description(messageService.format(context, "audit.member.avatar-update.title",
                     getUserReference(context, action.user())));
-            embed.setThumbnail(oldUrl);
+            embed.thumbnail(oldUrl);
             addTimestamp(context, action, embed);
         }
     }
@@ -271,7 +271,7 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.MEMBER_NICKNAME_UPDATE)
     public static class MemberNicknameUpdate extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             String url = action.getAttribute(AVATAR_URL);
             String oldNickname = action.getAttribute(OLD_NICKNAME);
             String newNickname = action.getAttribute(NEW_NICKNAME);
@@ -279,8 +279,8 @@ public class AuditProviders{
                 return;
             }
 
-            embed.setAuthor(formatName(action.user()), null, url);
-            embed.setDescription(messageService.format(context, "audit.member.nickname-update.title",
+            embed.author(formatName(action.user()), null, url);
+            embed.description(messageService.format(context, "audit.member.nickname-update.title",
                     getUserReference(context, action.user()),
                     oldNickname, newNickname));
             addTimestamp(context, action, embed);
@@ -293,14 +293,14 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.REACTION_ADD)
     public static class ReactionAddAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Snowflake messageId = action.getAttribute(MESSAGE_ID);
             ReactionEmoji emoji = action.getAttribute(REACTION_EMOJI);
             if(messageId == null || emoji == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.reaction.add.description",
+            embed.description(messageService.format(context, "audit.reaction.add.description",
                     getUserReference(context, action.user()), DiscordUtil.getEmojiString(emoji),
                     action.guildId().asString(), action.channel().id(), messageId.asString()));
 
@@ -311,14 +311,14 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.REACTION_REMOVE)
     public static class ReactionRemoveAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Snowflake messageId = action.getAttribute(MESSAGE_ID);
             ReactionEmoji emoji = action.getAttribute(REACTION_EMOJI);
             if(messageId == null || emoji == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.reaction.remove.description",
+            embed.description(messageService.format(context, "audit.reaction.remove.description",
                     DiscordUtil.getEmojiString(emoji), getUserReference(context, action.user()),
                     action.guildId().asString(), action.channel().id(), messageId.asString()));
 
@@ -329,13 +329,13 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.REACTION_REMOVE_ALL)
     public static class ReactionRemoveAllAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             Snowflake messageId = action.getAttribute(MESSAGE_ID);
             if(messageId == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.reaction.remove-all.description",
+            embed.description(messageService.format(context, "audit.reaction.remove-all.description",
                     action.guildId().asString(), action.channel().id(), messageId.asString()));
 
             addTimestamp(context, action, embed);
@@ -348,8 +348,8 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.VOICE_JOIN)
     public static class VoiceJoinAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
-            embed.setDescription(messageService.format(context, "audit.voice.join.description",
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
+            embed.description(messageService.format(context, "audit.voice.join.description",
                     getUserReference(context, action.user()), getShortReference(context, action.channel())));
             addTimestamp(context, action, embed);
         }
@@ -358,8 +358,8 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.VOICE_LEAVE)
     public static class VoiceLeaveAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
-            embed.setDescription(messageService.format(context, "audit.voice.leave.description",
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
+            embed.description(messageService.format(context, "audit.voice.leave.description",
                     getUserReference(context, action.user()), getShortReference(context, action.channel())));
             addTimestamp(context, action, embed);
         }
@@ -368,13 +368,13 @@ public class AuditProviders{
     @ForwardAuditProvider(AuditActionType.VOICE_MOVE)
     public static class VoiceMoveAuditProvider extends BaseAuditProvider{
         @Override
-        protected void build(AuditAction action, ContextView context, MessageCreateSpec spec, EmbedCreateSpec embed){
+        protected void build(AuditAction action, ContextView context, MessageCreateSpec.Builder spec, EmbedCreateSpec.Builder embed){
             NamedReference oldChannel = action.getAttribute(OLD_CHANNEL);
             if(oldChannel == null){
                 return;
             }
 
-            embed.setDescription(messageService.format(context, "audit.voice.move.description",
+            embed.description(messageService.format(context, "audit.voice.move.description",
                     getUserReference(context, action.user()),
                     getShortReference(context, oldChannel),
                     getShortReference(context, action.channel())));

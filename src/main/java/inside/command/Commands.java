@@ -12,7 +12,7 @@ import discord4j.core.object.entity.channel.*;
 import discord4j.core.object.presence.ClientPresence;
 import discord4j.core.object.reaction.ReactionEmoji;
 import discord4j.core.retriever.EntityRetrievalStrategy;
-import discord4j.discordjson.json.*;
+import discord4j.core.spec.*;
 import discord4j.rest.util.*;
 import discord4j.voice.VoiceConnection;
 import inside.Settings;
@@ -157,8 +157,8 @@ public class Commands{
                     })
                     .collect(Collectors.joining())
                     .flatMap(categoriesStr -> messageService.info(env, spec ->
-                            spec.setTitle(messageService.get(env.context(), "command.help"))
-                                    .setDescription(categoriesStr)));
+                            spec.title(messageService.get(env.context(), "command.help"))
+                                    .description(categoriesStr)));
 
             Mono<Void> snowHelp = Mono.defer(() -> {
                 String unwrapped = category.orElse("");
@@ -182,10 +182,10 @@ public class Commands{
                     .collect(categoryCollector)
                     .map(builder -> builder.append(messageService.get(env.context(), "command.help.disclaimer.user"))
                             .append("\n").append(messageService.get(env.context(), "command.help.disclaimer.help")))
-                    .flatMap(str -> messageService.info(env, spec -> spec.setTitle(messageService.get(env.context(),
+                    .flatMap(str -> messageService.info(env, spec -> spec.title(messageService.get(env.context(),
                             categoriesWithCommands.get().get(category.orElseThrow(AssertionError::new)).get(0).getClass()
                                     .getSuperclass().getCanonicalName()))
-                            .setDescription(str.toString())));
+                            .description(str.toString())));
         }
     }
 
@@ -255,7 +255,7 @@ public class Commands{
                     t -> messageService.err(env, t.getMessage()).then(Mono.empty()))
                     .flatMap(str -> messageService.text(env, spec -> {
                         if(str.length() < Message.MAX_CONTENT_LENGTH && !attachmentMode.get()){
-                            spec.setContent(str);
+                            spec.content(str);
                         }else if(str.length() > Message.MAX_CONTENT_LENGTH || attachmentMode.get()){
                             spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(str));
                         }
@@ -472,7 +472,7 @@ public class Commands{
                 if(text.length() >= Message.MAX_CONTENT_LENGTH){
                     spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(text));
                 }else{
-                    spec.setContent(text);
+                    spec.content(text);
                 }
             }).contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
@@ -554,7 +554,7 @@ public class Commands{
                 if(translited.length() >= Message.MAX_CONTENT_LENGTH){
                     spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(translited));
                 }else{
-                    spec.setContent(translited);
+                    spec.content(translited);
                 }
             }).contextWrite(ctx -> ctx.put(KEY_REPLY, true));
         }
@@ -609,9 +609,9 @@ public class Commands{
                     .filter(emoji -> emoji.asFormat().equals(text) || emoji.getName().equals(text) ||
                             emoji.getId().asString().equals(text)).next()
                     .switchIfEmpty(messageService.err(env, "command.emoji.not-found").then(Mono.empty()))
-                    .flatMap(emoji -> messageService.info(env, embed -> embed.setImage(emoji.getImageUrl() + "?size=512")
-                            .setFooter(messageService.format(env.context(), "common.id", emoji.getId().asString()), null)
-                            .setDescription(messageService.format(env.context(), "command.emoji.text", emoji.getName(), emoji.asFormat()))));
+                    .flatMap(emoji -> messageService.info(env, embed -> embed.image(emoji.getImageUrl() + "?size=512")
+                            .footer(messageService.format(env.context(), "common.id", emoji.getId().asString()), null)
+                            .description(messageService.format(env.context(), "command.emoji.text", emoji.getName(), emoji.asFormat()))));
         }
     }
 
@@ -633,8 +633,8 @@ public class Commands{
                     .switchIfEmpty(env.getClient().getUserById(env.getAuthorAsMember().getId())
                             .filter(ignored -> firstOpt.isEmpty()))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.empty()))
-                    .flatMap(user -> messageService.info(env, embed -> embed.setImage(user.getAvatarUrl() + "?size=512")
-                            .setDescription(messageService.format(env.context(), "command.avatar.text", user.getUsername(),
+                    .flatMap(user -> messageService.info(env, embed -> embed.image(user.getAvatarUrl() + "?size=512")
+                            .description(messageService.format(env.context(), "command.avatar.text", user.getUsername(),
                                     DiscordUtil.getUserMention(user.getId())))));
         }
 
@@ -665,7 +665,7 @@ public class Commands{
                         if(decimal.length() >= Message.MAX_CONTENT_LENGTH){
                             spec.addFile(MESSAGE_TXT, ReusableByteInputStream.ofString(decimal));
                         }else{
-                            spec.setContent(decimal);
+                            spec.content(decimal);
                         }
                     }));
         }
@@ -1333,7 +1333,7 @@ public class Commands{
                     .withLocale(env.context().get(KEY_LOCALE))
                     .withZone(env.context().get(KEY_TIMEZONE));
 
-            Collector<Tuple2<Long, AdminAction>, ImmutableEmbedData.Builder, EmbedData> collector = Collector.of(EmbedData::builder,
+            Collector<Tuple2<Long, AdminAction>, EmbedCreateSpec.Builder, EmbedCreateSpec> collector = Collector.of(EmbedCreateSpec::builder,
                     (spec, tuple) -> {
                         long index = tuple.getT1();
                         AdminAction warn = tuple.getT2();
@@ -1342,16 +1342,12 @@ public class Commands{
                                 messageService.format(env.context(), "common.reason", warn.reason()
                                         .orElse(messageService.get(env.context(), "common.not-defined"))));
 
-                        EmbedFieldData field = EmbedFieldData.builder()
-                                .name(String.format("%2s. %s", index + 1, formatter.format(warn.timestamp())))
-                                .value(value)
-                                .inline(true)
-                                .build();
+                        String title = String.format("%2s. %s", index + 1, formatter.format(warn.timestamp()));
 
-                        spec.addField(field);
+                        spec.addField(EmbedCreateFields.Field.of(title, value, true));
                     },
                     (builder0, builder1) -> builder0, /* non-mergable */
-                    ImmutableEmbedData.Builder::build);
+                    EmbedCreateSpec.Builder::build);
 
             return Mono.justOrEmpty(targetId)
                     .flatMap(userId -> env.getClient().getMemberById(guildId, userId))
@@ -1363,7 +1359,7 @@ public class Commands{
                             .switchIfEmpty(messageService.text(env, "command.admin.warnings.empty").then(Mono.never()))
                             .take(21, true).index().collect(collector))
                     .flatMap(function((target, embed) -> messageService.info(env, spec -> spec.from(embed)
-                            .setTitle(messageService.format(env.context(), "command.admin.warnings.title", target.getDisplayName())))));
+                            .title(messageService.format(env.context(), "command.admin.warnings.title", target.getDisplayName())))));
         }
     }
 
@@ -1574,7 +1570,7 @@ public class Commands{
                             }));
 
             AudioLoadResultHandler loadResultHandler = new FunctionalResultHandler(
-                    track -> messageService.text(env, "command.voice.play.queued")
+                    track -> messageService.text(env, "command.voice.play.queued", track.getInfo().title)
                             .doFirst(() -> voiceRegistry.getTrackLoader().queue(track)).subscribe(),
                     voiceRegistry.getTrackLoader()::queue,
                     () -> messageService.err(env, "command.voice.play.not-found")
@@ -1632,51 +1628,4 @@ public class Commands{
     }
 
     //endregion
-
-    // @DiscordCommand(key = "js", params = "command.javascript.params", description = "command.javascript.description")
-    // public static class JsCommand extends Command{
-    //     private static final List<String> blacklist = List.of(
-    //             ".awt", ".net.", "beans", "channels", "classloader", "compiler", "exec", "file",
-    //             "files", "http", "inside.insidebot", "invoke", "java.net", "javax", "jdk", "oracle", "org.", "org.", "process", "reflect",
-    //             "rmi", "runtime", "security", "socket", "sql", "sun.", "system",
-    //             "thread"
-    //     );
-    //
-    //     public static boolean allowClass(String type){
-    //         return blacklist.stream().noneMatch(s -> type.toLowerCase(Locale.ROOT).contains(s));
-    //     }
-    //
-    //     private final ReusableByteOutputStream out = new ReusableByteOutputStream();
-    //
-    //     private final inside.util.Lazy<Context> context = inside.util.Lazy.of(() -> Context.newBuilder("js")
-    //             .allowHostAccess(HostAccess.ALL)
-    //             .allowHostClassLookup(JsCommand::allowClass)
-    //             .allowAllAccess(false)
-    //             .out(out)
-    //             .build());
-    //
-    //     @Override
-    //     public Mono<Void> execute(CommandEnvironment env, CommandInteraction interaction){
-    //         String code = interaction.getOption("code")
-    //                 .flatMap(CommandOption::getValue)
-    //                 .map(OptionValue::asString)
-    //                 .orElseThrow(AssertionError::new);
-    //
-    //         Mono<String> exec = Mono.fromCallable(() -> {
-    //             String s = context.get().eval("js", code).toString();
-    //             String s0 = out.toString(StandardCharsets.UTF_8);
-    //             if(s.equals("undefined") && !s0.isEmpty()){
-    //                 s = s0;
-    //                 out.reset();
-    //             }
-    //             return s;
-    //         });
-    //
-    //         return exec.publishOn(Schedulers.boundedElastic()).onErrorResume(t -> true,
-    //                 t -> messageService.error(env.getReplyChannel(), "command.javascript.script-error",
-    //                         String.format("```%n%s%n```", t.getMessage())).then(Mono.empty()))
-    //                 .flatMap(it -> messageService.text(env.getReplyChannel(), String.format("```js%n%s%n```",
-    //                         MessageUtil.substringTo(it, 1000))));
-    //     }
-    // }
 }

@@ -1372,8 +1372,8 @@ public class InteractionCommands{
                     .flatMap(ApplicationCommandInteractionOption::getValue)
                     .map(ApplicationCommandInteractionOptionValue::asUser)
                     .orElse(Mono.just(env.event().getInteraction().getUser()))
-                    .flatMap(user -> messageService.info(env.event(), embed -> embed.setImage(user.getAvatarUrl() + "?size=512")
-                            .setDescription(messageService.format(env.context(), "command.avatar.text", user.getUsername(),
+                    .flatMap(user -> messageService.info(env.event(), embed -> embed.image(user.getAvatarUrl() + "?size=512")
+                            .description(messageService.format(env.context(), "command.avatar.text", user.getUsername(),
                                     DiscordUtil.getUserMention(user.getId())))));
         }
 
