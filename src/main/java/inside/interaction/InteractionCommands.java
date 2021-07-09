@@ -5,6 +5,7 @@ import discord4j.common.util.Snowflake;
 import discord4j.core.object.command.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
+import discord4j.core.retriever.EntityRetrievalStrategy;
 import discord4j.discordjson.json.*;
 import discord4j.rest.util.*;
 import inside.Settings;
@@ -1370,7 +1371,8 @@ public class InteractionCommands{
         public Mono<Void> execute(InteractionCommandEnvironment env){
             return env.event().getOption("target")
                     .flatMap(ApplicationCommandInteractionOption::getValue)
-                    .map(ApplicationCommandInteractionOptionValue::asUser)
+                    .map(opt -> env.getClient().withRetrievalStrategy(EntityRetrievalStrategy.REST)
+                            .getUserById(opt.asSnowflake()))
                     .orElse(Mono.just(env.event().getInteraction().getUser()))
                     .flatMap(user -> messageService.info(env.event(), embed -> embed.image(user.getAvatarUrl() + "?size=512")
                             .description(messageService.format(env.context(), "command.avatar.text", user.getUsername(),

@@ -625,13 +625,15 @@ public class Commands{
 
             Mono<User> referencedUser = Mono.justOrEmpty(env.getMessage().getMessageReference())
                     .flatMap(ref -> Mono.justOrEmpty(ref.getMessageId()).flatMap(messageId ->
-                            env.getClient().getMessageById(ref.getChannelId(), messageId)))
+                            env.getClient().withRetrievalStrategy(EntityRetrievalStrategy.REST)
+                                    .getMessageById(ref.getChannelId(), messageId)))
                     .flatMap(message -> Mono.justOrEmpty(message.getAuthor()));
 
             return Mono.justOrEmpty(firstOpt.map(OptionValue::asSnowflake)).flatMap(id -> env.getClient()
                     .withRetrievalStrategy(EntityRetrievalStrategy.REST).getUserById(id))
                     .switchIfEmpty(referencedUser)
-                    .switchIfEmpty(env.getClient().getUserById(env.getAuthorAsMember().getId())
+                    .switchIfEmpty(env.getClient().withRetrievalStrategy(EntityRetrievalStrategy.REST)
+                            .getUserById(env.getAuthorAsMember().getId())
                             .filter(ignored -> firstOpt.isEmpty()))
                     .switchIfEmpty(messageService.err(env, "command.incorrect-name").then(Mono.empty()))
                     .flatMap(user -> messageService.info(env, embed -> embed.image(user.getAvatarUrl() + "?size=512")

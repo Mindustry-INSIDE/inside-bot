@@ -1,23 +1,17 @@
 package inside.service.impl;
 
 import discord4j.common.LogUtil;
-import discord4j.common.store.Store;
-import discord4j.common.store.legacy.LegacyStoreLayout;
 import discord4j.common.util.Snowflake;
 import discord4j.core.*;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.object.entity.channel.TextChannel;
 import discord4j.core.shard.MemberRequestFilter;
-import discord4j.discordjson.json.PresenceData;
 import discord4j.gateway.intent.*;
 import discord4j.rest.http.client.ClientException;
 import discord4j.rest.request.*;
 import discord4j.rest.response.ResponseFunction;
 import discord4j.rest.route.Routes;
 import discord4j.rest.util.RouteUtils;
-import discord4j.store.api.mapping.MappingStoreService;
-import discord4j.store.api.noop.NoOpStoreService;
-import discord4j.store.jdk.JdkStoreService;
 import inside.Settings;
 import inside.data.entity.Activity;
 import inside.data.service.EntityRetriever;
@@ -67,9 +61,6 @@ public class DiscordServiceImpl implements DiscordService{
                 .build()
                 .gateway()
                 .setMemberRequestFilter(MemberRequestFilter.all())
-                .setStore(Store.fromLayout(LegacyStoreLayout.of(MappingStoreService.create()
-                        .setMapping(new NoOpStoreService(), PresenceData.class)
-                        .setFallback(new JdkStoreService()))))
                 .setEnabledIntents(IntentSet.of(
                         Intent.GUILDS,
                         Intent.GUILD_MEMBERS,
