@@ -5,6 +5,7 @@ import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.guild.*;
 import discord4j.core.object.audit.ActionType;
 import discord4j.core.object.entity.*;
+import discord4j.core.spec.AuditLogQuerySpec;
 import inside.audit.AuditService;
 import inside.data.entity.AdminConfig;
 import inside.data.service.EntityRetriever;
@@ -89,7 +90,9 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                 .save();
 
         Mono<Void> kick = Mono.deferContextual(ctx -> event.getGuild()
-                .flatMapMany(guild -> guild.getAuditLog(spec -> spec.setActionType(ActionType.MEMBER_KICK)))
+                .flatMapMany(guild -> guild.getAuditLog(AuditLogQuerySpec.builder()
+                        .actionType(ActionType.MEMBER_KICK)
+                        .build()))
                 .flatMap(part -> Flux.fromIterable(part.getEntries()))
                 .filter(entry -> entry.getId().getTimestamp().isAfter(Instant.now(Clock.systemUTC()).minusMillis(TIMEOUT_MILLIS)) &&
                         entry.getTargetId().map(target -> target.equals(user.getId())).orElse(false))
@@ -106,7 +109,9 @@ public class MemberEventHandler extends ReactiveEventAdapter{
                 .then());
 
         return initContext.flatMap(ctx -> event.getGuild()
-                .flatMapMany(guild -> guild.getAuditLog(spec -> spec.setActionType(ActionType.MEMBER_BAN_ADD)))
+                .flatMapMany(guild -> guild.getAuditLog(AuditLogQuerySpec.builder()
+                        .actionType(ActionType.MEMBER_BAN_ADD)
+                        .build()))
                 .flatMap(part -> Flux.fromIterable(part.getEntries()))
                 .filter(entry -> entry.getId().getTimestamp().isAfter(Instant.now(Clock.systemUTC()).minusMillis(TIMEOUT_MILLIS)) &&
                         entry.getTargetId().map(target -> target.equals(user.getId())).orElse(false))

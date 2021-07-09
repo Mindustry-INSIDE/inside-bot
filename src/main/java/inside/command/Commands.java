@@ -197,9 +197,10 @@ public class Commands{
             return env.getReplyChannel()
                     .flatMap(channel -> channel.createMessage(
                             messageService.get(env.context(), "command.ping.testing")))
-                    .flatMap(message -> message.edit(spec -> spec.setContent(
-                            messageService.format(env.context(), "command.ping.completed",
-                                    System.currentTimeMillis() - start))))
+                    .flatMap(message -> message.edit(MessageEditSpec.builder()
+                            .contentOrNull(messageService.format(env.context(), "command.ping.completed",
+                                    System.currentTimeMillis() - start))
+                            .build()))
                     .then();
         }
     }
@@ -829,13 +830,17 @@ public class Commands{
                     .flatMap(message::addReaction)
                     .then(Mono.just(message));
 
-            return channel.flatMap(reply -> reply.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.suppressAll())
-                    .addEmbed(embed -> embed.setTitle(title)
-                            .setColor(settings.getDefaults().getNormalColor())
-                            .setDescription(IntStream.range(1, vars.length)
+            return channel.flatMap(reply -> reply.createMessage(MessageCreateSpec.builder()
+                    .allowedMentions(AllowedMentions.suppressAll())
+                    .embed(EmbedCreateSpec.builder()
+                            .title(title)
+                            .color(settings.getDefaults().getNormalColor())
+                            .description(IntStream.range(1, vars.length)
                                     .mapToObj(i -> String.format("**%d**. %s%n", i, vars[i]))
                                     .collect(Collectors.joining()))
-                            .setAuthor(author.getUsername(), null, author.getAvatarUrl()))))
+                            .author(author.getUsername(), null, author.getAvatarUrl())
+                            .build())
+                    .build()))
                     .flatMap(poll -> Mono.defer(() -> reactions.apply(poll, count)))
                     .then();
         }
@@ -862,9 +867,11 @@ public class Commands{
                     .map(OptionValue::asString)
                     .orElseThrow(IllegalStateException::new);
 
-            return env.getReplyChannel().flatMap(reply -> reply.createMessage(spec -> spec.setContent(messageService.format(env.context(),
-                    "command.qpoll.text", env.getAuthorAsMember().getUsername(), text))
-                    .setAllowedMentions(AllowedMentions.suppressAll())))
+            return env.getReplyChannel().flatMap(reply -> reply.createMessage(MessageCreateSpec.builder()
+                    .content(messageService.format(env.context(),
+                            "command.qpoll.text", env.getAuthorAsMember().getUsername(), text))
+                    .allowedMentions(AllowedMentions.suppressAll())
+                    .build()))
                     .flatMap(message1 -> message1.addReaction(up)
                             .and(message1.addReaction(down)));
         }
@@ -1250,7 +1257,9 @@ public class Commands{
                             Mono<Void> thresholdCheck = config.filter(adminConfig -> count >= adminConfig.maxWarnCount())
                                     .flatMap(adminConfig -> switch(adminConfig.thresholdAction()){
                                         case ban -> author.getGuild().flatMap(guild ->
-                                                guild.ban(member.getId(), spec -> spec.setDeleteMessageDays(0)));
+                                                guild.ban(member.getId(), BanQuerySpec.builder()
+                                                        .deleteMessageDays(0)
+                                                        .build()));
                                         case kick -> author.kick();
                                         case mute -> author.getGuild().flatMap(Guild::getOwner)
                                                 .flatMap(owner -> adminService.mute(owner, author,
@@ -1307,8 +1316,10 @@ public class Commands{
                     .filterWhen(target -> Mono.zip(adminService.isAdmin(target), adminService.isOwner(author))
                             .map(function((admin, owner) -> !(admin && !owner))))
                     .switchIfEmpty(messageService.err(env, "command.admin.user-is-admin").then(Mono.never()))
-                    .flatMap(member -> member.getGuild().flatMap(guild -> guild.ban(member.getId(), spec -> spec.setReason(reason)
-                            .setDeleteMessageDays(deleteDays)))
+                    .flatMap(member -> member.getGuild().flatMap(guild -> guild.ban(member.getId(), BanQuerySpec.builder()
+                            .reason(reason)
+                            .deleteMessageDays(deleteDays)
+                            .build()))
                             .then(member.getGuild().flatMap(guild -> guild.unban(member.getId()))))
                     .and(env.getMessage().addReaction(ok));
         }
@@ -1548,7 +1559,9 @@ public class Commands{
                     .switchIfEmpty(messageService.err(env, "command.voice.not-in-channel").then(Mono.empty()))
                     .flatMap(VoiceState::getChannel)
                     .filterWhen(channel -> channel.getVoiceConnection().hasElement().transform(BooleanUtils::not))
-                    .flatMap(channel -> channel.join(spec -> spec.setProvider(voiceRegistry.getAudioProvider()))
+                    .flatMap(channel -> channel.join(VoiceChannelJoinSpec.builder()
+                            .provider(voiceRegistry.getAudioProvider())
+                            .build())
                             .flatMap(connection -> {
                                 Publisher<Boolean> voiceStateCounter = channel.getVoiceStates()
                                         .count()
@@ -1629,3 +1642,4 @@ public class Commands{
 
     //endregion
 }
+

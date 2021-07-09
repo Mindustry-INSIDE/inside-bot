@@ -7,6 +7,7 @@ import discord4j.core.object.Embed.Field;
 import discord4j.core.object.audit.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.*;
+import discord4j.core.spec.AuditLogQuerySpec;
 import inside.audit.*;
 import inside.command.CommandHandler;
 import inside.command.model.CommandEnvironment;
@@ -203,7 +204,9 @@ public class MessageEventHandler extends ReactiveEventAdapter{
                     }
 
                     Mono<User> responsibleUser = event.getGuild()
-                            .flatMapMany(guild -> guild.getAuditLog(spec -> spec.setActionType(ActionType.MESSAGE_DELETE)))
+                            .flatMapMany(guild -> guild.getAuditLog(AuditLogQuerySpec.builder()
+                                    .actionType(ActionType.MESSAGE_DELETE)
+                                    .build()))
                             .flatMap(part -> Flux.fromIterable(part.getEntries()))
                             .sort(Comparator.comparing(AuditLogEntry::getId).reversed())
                             .filter(entry -> entry.getId().getTimestamp().isAfter(Instant.now(Clock.systemUTC()).minusMillis(TIMEOUT_MILLIS)) ||

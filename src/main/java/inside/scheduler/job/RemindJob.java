@@ -2,6 +2,7 @@ package inside.scheduler.job;
 
 import discord4j.common.util.Snowflake;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
+import discord4j.core.spec.MessageCreateSpec;
 import discord4j.rest.util.AllowedMentions;
 import inside.service.DiscordService;
 import inside.util.DiscordUtil;
@@ -37,10 +38,12 @@ public class RemindJob implements Job{
         discordService.gateway().getGuildById(guildId)
                 .flatMap(guild -> guild.getChannelById(channelId))
                 .ofType(GuildMessageChannel.class)
-                .flatMap(channel -> channel.createMessage(spec -> spec.setAllowedMentions(AllowedMentions.builder()
-                        .allowUser(userId)
-                        .build())
-                        .setContent(String.format("%s, %s", DiscordUtil.getUserMention(userId), text))))
+                .flatMap(channel -> channel.createMessage(MessageCreateSpec.builder()
+                        .content(String.format("%s, %s", DiscordUtil.getUserMention(userId), text))
+                        .allowedMentions(AllowedMentions.builder()
+                                .allowUser(userId)
+                                .build())
+                        .build()))
                 .subscribe();
     }
 

@@ -6,6 +6,7 @@ import discord4j.core.event.domain.message.*;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.*;
+import discord4j.core.spec.*;
 import discord4j.rest.util.*;
 import inside.data.entity.*;
 import inside.data.service.EntityRetriever;
@@ -98,45 +99,53 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                             .switchIfEmpty(findIfAbsent);
 
                     Mono<Message> updateOld = event.getMessage().zipWith(targetMessage)
-                            .flatMap(function((source, target) -> target.edit(spec -> spec.removeEmbeds()
-                                    .addEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
-                                    .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
-                                    .setContent(messageService.format(context, "starboard.format",
+                            .flatMap(function((source, target) -> target.edit(MessageEditSpec.builder()
+                                    .embedOrNull(EmbedCreateSpec.builder()
+                                            .color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)))
+                                            .build())
+                                    .contentOrNull(messageService.format(context, "starboard.format",
                                             formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
-                                            l, DiscordUtil.getChannelMention(source.getChannelId()))))));
+                                            l, DiscordUtil.getChannelMention(source.getChannelId())))
+                                    .build())));
 
-                    Mono<Message> createNew = Mono.zip(starboardChannel, event.getMessage(), author).flatMap(function((channel, source, user) ->
-                            channel.createMessage(spec -> spec.setContent(messageService.format(
-                                    context, "starboard.format", formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
-                                    l, DiscordUtil.getChannelMention(source.getChannelId())))
-                                    .setAllowedMentions(AllowedMentions.suppressAll())
-                                    .addEmbed(embed -> {
-                                        embed.setFooter(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
-                                                .withLocale(context.get(KEY_LOCALE))
-                                                .withZone(context.get(KEY_TIMEZONE))
-                                                .format(Instant.now()), null);
-                                        embed.setAuthor(user.getUsername(), null, user.getAvatarUrl());
-                                        embed.setDescription(source.getContent());
-                                        embed.setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));
-                                        embed.addField(messageService.get(context, "starboard.source"), messageService.format(context, "starboard.jump",
-                                                guildId.asString(), source.getChannelId().asString(), source.getId().asString()), false);
-                                        Set<Attachment> files = source.getAttachments().stream()
-                                                .filter(att -> !att.getContentType().map(str -> str.startsWith("image")).orElse(false))
-                                                .collect(Collectors.toSet());
+                    Mono<Message> createNew = Mono.zip(starboardChannel, event.getMessage(), author).flatMap(function((channel, source, user) -> {
+                        var embedSpec = EmbedCreateSpec.builder();
 
-                                        if(files.size() != 0){
-                                            String key = files.size() == 1 ? "starboard.attachment" : "starboard.attachments";
-                                            embed.addField(messageService.get(context, key), files.stream()
-                                                    .map(att -> String.format("[%s](%s)%n", att.getFilename(), att.getUrl()))
-                                                    .collect(Collectors.joining()), false);
-                                        }
+                        embedSpec.footer(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
+                                .withLocale(context.get(KEY_LOCALE))
+                                .withZone(context.get(KEY_TIMEZONE))
+                                .format(Instant.now()), null);
+                        embedSpec.author(user.getUsername(), null, user.getAvatarUrl());
+                        embedSpec.description(source.getContent());
+                        embedSpec.color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));
+                        embedSpec.addField(messageService.get(context, "starboard.source"), messageService.format(context, "starboard.jump",
+                                guildId.asString(), source.getChannelId().asString(), source.getId().asString()), false);
+                        Set<Attachment> files = source.getAttachments().stream()
+                                .filter(att -> !att.getContentType().map(str -> str.startsWith("image")).orElse(false))
+                                .collect(Collectors.toSet());
 
-                                        source.getAttachments().stream()
-                                                .filter(att -> att.getContentType().map(str -> str.startsWith("image")).orElse(false))
-                                                .map(Attachment::getUrl)
-                                                .findFirst().ifPresent(embed::setImage);
-                                    }))
-                                    .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId()).thenReturn(target))));
+                        if(files.size() != 0){
+                            String key = files.size() == 1 ? "starboard.attachment" : "starboard.attachments";
+                            embedSpec.addField(messageService.get(context, key), files.stream()
+                                    .map(att -> String.format("[%s](%s)%n", att.getFilename(), att.getUrl()))
+                                    .collect(Collectors.joining()), false);
+                        }
+
+                        source.getAttachments().stream()
+                                .filter(att -> att.getContentType().map(str -> str.startsWith("image")).orElse(false))
+                                .map(Attachment::getUrl)
+                                .findFirst().ifPresent(embedSpec::image);
+
+                        return channel.createMessage(MessageCreateSpec.builder()
+                                .content(messageService.format(
+                                        context, "starboard.format", formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
+                                        l, DiscordUtil.getChannelMention(source.getChannelId())))
+                                .allowedMentions(AllowedMentions.suppressAll())
+                                .embed(embedSpec.build())
+                                .build())
+                                .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
+                                        .thenReturn(target));
+                    }));
 
                     return updateOld.switchIfEmpty(createNew);
                 }).contextWrite(context)));
@@ -206,11 +215,14 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                 }
 
                                 Snowflake sourceChannelId = event.getChannelId();
-                                return target.edit(spec -> spec.removeEmbeds().addEmbed(embed -> embed.from(target.getEmbeds().get(0).getData())
-                                        .setColor(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep))))
-                                        .setContent(messageService.format(context, "starboard.format",
+                                return target.edit(MessageEditSpec.builder()
+                                        .embedOrNull(EmbedCreateSpec.builder()
+                                                .color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)))
+                                                .build())
+                                        .contentOrNull(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
-                                        l, DiscordUtil.getChannelMention(sourceChannelId))));
+                                                l, DiscordUtil.getChannelMention(sourceChannelId)))
+                                        .build());
                             }));
         }).contextWrite(context)));
     }
