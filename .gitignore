@@ -13,3 +13,4 @@ build/
 *.bin
 logs/
 src/legacy/
+deploy
