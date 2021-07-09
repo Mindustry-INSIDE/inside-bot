@@ -3,6 +3,7 @@ package inside.event;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
+import discord4j.core.object.Embed;
 import discord4j.core.object.entity.*;
 import discord4j.core.object.entity.channel.GuildMessageChannel;
 import discord4j.core.object.reaction.*;
@@ -99,16 +100,63 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                             .switchIfEmpty(findIfAbsent);
 
                     Mono<Message> updateOld = event.getMessage().zipWith(targetMessage)
-                            .flatMap(function((source, target) -> target.edit(MessageEditSpec.builder()
-                                    .embedOrNull(EmbedCreateSpec.builder()
-                                            .color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)))
-                                            .build())
-                                    .contentOrNull(messageService.format(context, "starboard.format",
-                                            formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
-                                            l, DiscordUtil.getChannelMention(source.getChannelId())))
-                                    .build())));
+                            .flatMap(function((source, target) -> {
+                                var old = Try.ofCallable(() -> target.getEmbeds().get(0)).orElse(null); // IOOB
+                                var embedSpec = EmbedCreateSpec.builder();
+
+                                if(old == null){ // someone remove embed
+
+                                    var authorUser = source.getAuthor().orElseThrow(IllegalStateException::new);
+                                    embedSpec.author(authorUser.getUsername(), null, authorUser.getAvatarUrl());
+
+                                    embedSpec.description(source.getContent());
+                                    embedSpec.footer(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
+                                            .withLocale(context.get(KEY_LOCALE))
+                                            .withZone(context.get(KEY_TIMEZONE))
+                                            .format(Instant.now()), null);
+
+                                    Set<Attachment> files = source.getAttachments().stream()
+                                            .filter(att -> !att.getContentType().map(str -> str.startsWith("image")).orElse(false))
+                                            .collect(Collectors.toSet());
+
+                                    if(files.size() != 0){
+                                        String key = files.size() == 1 ? "starboard.attachment" : "starboard.attachments";
+                                        embedSpec.addField(messageService.get(context, key), files.stream()
+                                                .map(att -> String.format("[%s](%s)%n", att.getFilename(), att.getUrl()))
+                                                .collect(Collectors.joining()), false);
+                                    }
+
+                                    source.getAttachments().stream()
+                                            .filter(att -> att.getContentType().map(str -> str.startsWith("image")).orElse(false))
+                                            .map(Attachment::getUrl)
+                                            .findFirst().ifPresent(embedSpec::image);
+                                }else{
+
+                                    embedSpec.description(old.getDescription().orElseThrow(IllegalStateException::new));
+                                    var embedAuthor = old.getAuthor().orElseThrow(IllegalStateException::new);
+                                    embedSpec.author(embedAuthor.getName().orElseThrow(IllegalStateException::new), null,
+                                            embedAuthor.getIconUrl().orElseThrow(IllegalStateException::new));
+                                    embedSpec.fields(old.getFields().stream()
+                                            .map(field -> EmbedCreateFields.Field.of(field.getName(), field.getValue(), field.isInline()))
+                                            .collect(Collectors.toList()));
+                                    old.getImage().map(Embed.Image::getUrl).ifPresent(embedSpec::image);
+                                }
+
+                                embedSpec.color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));
+
+                                return target.edit(MessageEditSpec.builder()
+                                        .embedOrNull(embedSpec.build())
+                                        .contentOrNull(messageService.format(context, "starboard.format",
+                                                formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
+                                                l, DiscordUtil.getChannelMention(source.getChannelId())))
+                                        .build());
+                            }));
 
                     Mono<Message> createNew = Mono.zip(starboardChannel, event.getMessage(), author).flatMap(function((channel, source, user) -> {
+                        if(source.getInteraction().isPresent() || source.getWebhookId().isPresent()){
+                            return Mono.empty(); // don't handle webhooks and interactions
+                        }
+
                         var embedSpec = EmbedCreateSpec.builder();
 
                         embedSpec.footer(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
@@ -214,11 +262,30 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                     return target.delete().and(entityRetriever.deleteStarboardById(guildId, event.getMessageId()));
                                 }
 
+                                var old = Try.ofCallable(() -> target.getEmbeds().get(0)).orElse(null); // IOOB
+                                var embedSpec = EmbedCreateSpec.builder();
+
+                                if(old == null){ // someone remove embed
+
+                                    //TODO: implement
+                                    return Mono.empty();
+                                }else{
+
+                                    embedSpec.description(old.getDescription().orElseThrow(IllegalStateException::new));
+                                    var embedAuthor = old.getAuthor().orElseThrow(IllegalStateException::new);
+                                    embedSpec.author(embedAuthor.getName().orElseThrow(IllegalStateException::new), null,
+                                            embedAuthor.getIconUrl().orElseThrow(IllegalStateException::new));
+                                    embedSpec.fields(old.getFields().stream()
+                                            .map(field -> EmbedCreateFields.Field.of(field.getName(), field.getValue(), field.isInline()))
+                                            .collect(Collectors.toList()));
+                                    old.getImage().map(Embed.Image::getUrl).ifPresent(embedSpec::image);
+                                }
+
+                                embedSpec.color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));
+
                                 Snowflake sourceChannelId = event.getChannelId();
                                 return target.edit(MessageEditSpec.builder()
-                                        .embedOrNull(EmbedCreateSpec.builder()
-                                                .color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)))
-                                                .build())
+                                        .embedOrNull(embedSpec.build())
                                         .contentOrNull(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                                 l, DiscordUtil.getChannelMention(sourceChannelId)))

@@ -47,7 +47,8 @@ public abstract class BaseAuditProvider implements AuditProvider{
                                 .thenReturn(false)))
                 .flatMap(channel -> {
                     var messageSpec = MessageCreateSpec.builder();
-                    var embedSpec = EmbedCreateSpec.builder();
+                    var embedSpec = EmbedCreateSpec.builder()
+                            .color(action.type().color);
 
                     build(action, ctx, messageSpec, embedSpec);
 
