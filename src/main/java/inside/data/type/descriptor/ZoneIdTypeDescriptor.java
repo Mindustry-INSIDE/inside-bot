@@ -9,15 +9,6 @@ import java.util.Comparator;
 public class ZoneIdTypeDescriptor extends AbstractTypeDescriptor<ZoneId>{
     public static final ZoneIdTypeDescriptor instance = new ZoneIdTypeDescriptor();
 
-    public static class ZoneIdComparator implements Comparator<ZoneId>{
-        public static final ZoneIdComparator instance = new ZoneIdComparator();
-
-        @Override
-        public int compare(ZoneId o1, ZoneId o2){
-            return o1.getId().compareTo(o2.getId());
-        }
-    }
-
     public ZoneIdTypeDescriptor(){
         super(ZoneId.class);
     }
@@ -34,7 +25,7 @@ public class ZoneIdTypeDescriptor extends AbstractTypeDescriptor<ZoneId>{
 
     @Override
     public Comparator<ZoneId> getComparator(){
-        return ZoneIdComparator.instance;
+        return Comparator.comparing(ZoneId::getId);
     }
 
     @Override

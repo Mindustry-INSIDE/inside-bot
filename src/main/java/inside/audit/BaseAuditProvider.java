@@ -52,7 +52,7 @@ public abstract class BaseAuditProvider implements AuditProvider{
 
                     build(action, ctx, messageSpec, embedSpec);
 
-                    return channel.createMessage(messageSpec.embed(embedSpec.build()).files(attachments.stream()
+                    return channel.createMessage(messageSpec.addEmbed(embedSpec.build()).files(attachments.stream()
                             .map(function(MessageCreateFields.File::of))
                             .collect(Collectors.toList())).build());
                 })

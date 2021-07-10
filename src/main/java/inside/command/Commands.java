@@ -834,7 +834,7 @@ public class Commands{
 
             return channel.flatMap(reply -> reply.createMessage(MessageCreateSpec.builder()
                     .allowedMentions(AllowedMentions.suppressAll())
-                    .embed(EmbedCreateSpec.builder()
+                    .addEmbed(EmbedCreateSpec.builder()
                             .title(title)
                             .color(settings.getDefaults().getNormalColor())
                             .description(IntStream.range(1, vars.length)

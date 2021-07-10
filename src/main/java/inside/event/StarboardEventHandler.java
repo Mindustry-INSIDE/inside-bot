@@ -145,7 +145,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                 embedSpec.color(lerp(offsetColor, targetColor, Mathf.round(l / 6f, lerpStep)));
 
                                 return target.edit(MessageEditSpec.builder()
-                                        .embedOrNull(embedSpec.build())
+                                        .addEmbed(embedSpec.build())
                                         .contentOrNull(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                                 l, DiscordUtil.getChannelMention(source.getChannelId())))
@@ -189,7 +189,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                                         context, "starboard.format", formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                         l, DiscordUtil.getChannelMention(source.getChannelId())))
                                 .allowedMentions(AllowedMentions.suppressAll())
-                                .embed(embedSpec.build())
+                                .addEmbed(embedSpec.build())
                                 .build())
                                 .flatMap(target -> entityRetriever.createStarboard(guildId, source.getId(), target.getId())
                                         .thenReturn(target));
@@ -285,7 +285,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
 
                                 Snowflake sourceChannelId = event.getChannelId();
                                 return target.edit(MessageEditSpec.builder()
-                                        .embedOrNull(embedSpec.build())
+                                        .addEmbed(embedSpec.build())
                                         .contentOrNull(messageService.format(context, "starboard.format",
                                                 formatted.get(Mathf.clamp((l - 1) / 5, 0, formatted.size() - 1)),
                                                 l, DiscordUtil.getChannelMention(sourceChannelId)))

@@ -152,7 +152,7 @@ public class MessageServiceImpl implements MessageService{
     public Mono<Void> info(Mono<? extends MessageChannel> channel, String title, String text, Object... args){
         return Mono.deferContextual(ctx -> channel.flatMap(c -> c.createMessage(MessageCreateSpec.builder()
                 .allowedMentions(AllowedMentions.suppressAll())
-                .embed(EmbedCreateSpec.builder()
+                .addEmbed(EmbedCreateSpec.builder()
                         .title(get(ctx, title))
                         .description(format(ctx, text, args))
                         .color(settings.getDefaults().getNormalColor())
@@ -180,7 +180,7 @@ public class MessageServiceImpl implements MessageService{
                                     ? Possible.of(environment.getMessage().getId())
                                     : Possible.absent())
                             .allowedMentions(AllowedMentions.suppressAll())
-                            .embed(embedSpec.build())
+                            .addEmbed(embedSpec.build())
                             .build());
                 })
                 .then());
@@ -199,7 +199,7 @@ public class MessageServiceImpl implements MessageService{
                                 ? Possible.of(environment.getMessage().getId())
                                 : Possible.absent())
                         .allowedMentions(AllowedMentions.suppressAll())
-                        .embed(EmbedCreateSpec.builder()
+                        .addEmbed(EmbedCreateSpec.builder()
                                 .color(settings.getDefaults().getErrorColor())
                                 .description(format(ctx, text, args))
                                 .title(get(ctx, title))
