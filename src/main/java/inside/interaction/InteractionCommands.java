@@ -26,6 +26,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.*;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import static inside.audit.Attribute.COUNT;
@@ -94,6 +95,8 @@ public class InteractionCommands{
 
     @InteractionDiscordCommand
     public static class SettingsCommand extends OwnerCommand{
+        private static final Pattern unicode = Pattern.compile("[^\\p{L}\\p{N}\\p{P}\\p{Z}]", Pattern.UNICODE_CHARACTER_CLASS);
+
         @Override
         public Mono<Void> execute(InteractionCommandEnvironment env){
             Snowflake guildId = env.event().getInteraction().getGuildId()
@@ -168,9 +171,11 @@ public class InteractionCommands{
                                             .filter(emoji -> emoji.asFormat().equals(str) || emoji.getName().equals(str) ||
                                                     emoji.getId().asString().equals(str))
                                             .map(GuildEmoji::getData)
-                                            .defaultIfEmpty(EmojiData.builder()
-                                                    .name(str)
-                                                    .build()))
+                                            .switchIfEmpty(Mono.just(str)
+                                                    .filter(s -> unicode.matcher(s).find())
+                                                    .map(s -> EmojiData.builder()
+                                                            .name(s)
+                                                            .build())))
                                             .collectList()
                                             .flatMap(list -> {
                                                 var tmp = new ArrayList<>(emojis);

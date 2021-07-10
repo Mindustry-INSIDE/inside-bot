@@ -13,7 +13,6 @@ import reactor.util.context.ContextView;
 import reactor.util.function.Tuple2;
 
 import java.io.InputStream;
-import java.time.ZoneId;
 import java.time.format.*;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -60,10 +59,9 @@ public abstract class BaseAuditProvider implements AuditProvider{
     }
 
     protected void addTimestamp(ContextView context, AuditAction action, EmbedCreateSpec.Builder embed){
-        ZoneId zoneId = context.get(KEY_TIMEZONE);
         embed.footer(DateTimeFormatter.ofLocalizedDateTime(FormatStyle.LONG)
                 .withLocale(context.get(KEY_LOCALE))
-                .withZone(zoneId)
+                .withZone(context.get(KEY_TIMEZONE))
                 .format(action.timestamp()), null);
     }
 
