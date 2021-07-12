@@ -32,7 +32,7 @@ public class AuditConfig extends ConfigEntity{
 
     public Set<AuditActionType> types(){
         if(types == null){
-            types = EnumSet.noneOf(AuditActionType.class);
+            types = new HashSet<>();
         }
         return types;
     }
@@ -55,4 +55,3 @@ public class AuditConfig extends ConfigEntity{
                 "} " + super.toString();
     }
 }
-
