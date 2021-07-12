@@ -3,8 +3,8 @@ package inside.event;
 import discord4j.common.util.Snowflake;
 import discord4j.core.event.ReactiveEventAdapter;
 import discord4j.core.event.domain.message.*;
+import discord4j.core.object.reaction.ReactionEmoji;
 import inside.data.service.EntityRetriever;
-import inside.util.DiscordUtil;
 import org.reactivestreams.Publisher;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,7 +24,7 @@ public class RoleDispenserEventHandler extends ReactiveEventAdapter{
         }
 
         return entityRetriever.getEmojiDispensersById(event.getMessageId())
-                .filter(emojiDispenser -> event.getEmoji().equals(DiscordUtil.toReactionEmoji(emojiDispenser.emoji())))
+                .filter(emojiDispenser -> event.getEmoji().equals(ReactionEmoji.of(emojiDispenser.emoji())))
                 .flatMap(emojiDispenser -> event.getUser().flatMap(user -> user.asMember(guildId))
                         .flatMap(member -> member.addRole(emojiDispenser.roleId())));
     }
@@ -37,7 +37,7 @@ public class RoleDispenserEventHandler extends ReactiveEventAdapter{
         }
 
         return entityRetriever.getEmojiDispensersById(event.getMessageId())
-                .filter(emojiDispenser -> event.getEmoji().equals(DiscordUtil.toReactionEmoji(emojiDispenser.emoji())))
+                .filter(emojiDispenser -> event.getEmoji().equals(ReactionEmoji.of(emojiDispenser.emoji())))
                 .flatMap(emojiDispenser -> event.getUser().flatMap(user -> user.asMember(guildId))
                         .flatMap(member -> member.removeRole(emojiDispenser.roleId())));
     }

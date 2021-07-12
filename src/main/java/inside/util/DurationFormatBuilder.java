@@ -395,7 +395,7 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int scan(String periodStr, final int position){
+        public int scan(String periodStr, int position){
             int textLength = text.length();
             int sourceLength = periodStr.length();
             search:
@@ -640,7 +640,7 @@ public class DurationFormatBuilder{
         }
 
         @Override
-        public int scan(String periodStr, final int position){
+        public int scan(String periodStr, int position){
             int leftPosition = left.scan(periodStr, position);
             if(leftPosition >= 0){
                 int rightPosition = right.scan(periodStr, left.parse(periodStr, leftPosition));

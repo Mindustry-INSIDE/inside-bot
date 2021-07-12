@@ -303,7 +303,7 @@ public abstract class Try<T>{
         Objects.requireNonNull(exceptionType, "exceptionType");
         Objects.requireNonNull(function, "function");
         if(isFailure()){
-            final Throwable cause = getCause();
+            Throwable cause = getCause();
             if(exceptionType.isAssignableFrom(cause.getClass())){
                 return Try.ofCallable(() -> function.apply((X)cause));
             }
@@ -316,7 +316,7 @@ public abstract class Try<T>{
         Objects.requireNonNull(exceptionType, "exceptionType");
         Objects.requireNonNull(tryFunction, "tryFunction");
         if(isFailure()){
-            final Throwable cause = getCause();
+            Throwable cause = getCause();
             if(exceptionType.isAssignableFrom(cause.getClass())){
                 try{
                     return narrow(tryFunction.apply((X)cause));

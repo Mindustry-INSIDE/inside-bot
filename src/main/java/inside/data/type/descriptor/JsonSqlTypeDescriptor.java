@@ -24,7 +24,7 @@ public class JsonSqlTypeDescriptor implements SqlTypeDescriptor{
     }
 
     @Override
-    public <X> ValueExtractor<X> getExtractor(final JavaTypeDescriptor<X> descriptor){
+    public <X> ValueExtractor<X> getExtractor(JavaTypeDescriptor<X> descriptor){
         return new BasicExtractor<>(descriptor, this){
             @Override
             protected X doExtract(ResultSet resultSet, String name, WrapperOptions options) throws SQLException{

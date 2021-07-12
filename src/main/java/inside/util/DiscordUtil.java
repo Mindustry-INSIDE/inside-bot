@@ -24,11 +24,10 @@ public abstract class DiscordUtil{
 
     public static String getEmojiString(ReactionEmoji emoji){
         Objects.requireNonNull(emoji, "emoji");
-        if(emoji instanceof ReactionEmoji.Custom custom){
-            return String.format("<%s:%s:%s>", custom.isAnimated() ? "a" : "", custom.getName(), custom.getId().asString());
-        }
         return emoji.asUnicodeEmoji().map(ReactionEmoji.Unicode::getRaw)
-                .orElseThrow(IllegalStateException::new);
+                .orElseGet(() -> emoji.asCustomEmoji()
+                        .map(ReactionEmoji.Custom::asFormat)
+                        .orElseThrow(IllegalStateException::new));
     }
 
     public static String getEmojiString(EmojiData data){
@@ -40,16 +39,6 @@ public abstract class DiscordUtil{
                     name, data.id().get());
         }
         return name;
-    }
-
-    public static ReactionEmoji toReactionEmoji(EmojiData data){ // copied from ReactionEmoji#of(ReactionData)
-        Objects.requireNonNull(data, "data");
-        String name = data.name().orElseThrow(IllegalArgumentException::new);
-        if(data.id().isPresent()){
-            return ReactionEmoji.custom(Snowflake.of(data.id().get()),
-                    name, data.animated().toOptional().orElse(false));
-        }
-        return ReactionEmoji.unicode(name);
     }
 
     public static String getUserMention(Snowflake id){

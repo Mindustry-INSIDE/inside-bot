@@ -66,7 +66,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
         Mono<Starboard> starboard = entityRetriever.getStarboardById(guildId, event.getMessageId());
 
         return initContext.zipWith(starboardConfig).zipWhen(tuple -> Mono.just(tuple.getT2().emojis().stream()
-                        .map(DiscordUtil::toReactionEmoji)
+                        .map(ReactionEmoji::of)
                         .collect(Collectors.toList())),
                 (tuple, emojis) -> Tuples.of(tuple.getT1(), tuple.getT2(), emojis))
                 .flatMap(function((context, config, emojis) -> emojisCount.apply(emojis).flatMap(l -> {
@@ -222,7 +222,7 @@ public class StarboardEventHandler extends ReactiveEventAdapter{
                 .defaultIfEmpty(0);
 
         return initContext.zipWith(starboardConfig).zipWhen(tuple -> Mono.just(tuple.getT2().emojis().stream()
-                        .map(DiscordUtil::toReactionEmoji)
+                        .map(ReactionEmoji::of)
                         .collect(Collectors.toList())),
                 (tuple, emojis) -> Tuples.of(tuple.getT1(), tuple.getT2(), emojis))
                 .flatMap(function((context, config, emojis) -> emojisCount.apply(emojis).flatMap(l -> {
